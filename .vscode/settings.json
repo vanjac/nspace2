@@ -1,0 +1,5 @@
+{
+    "editor.formatOnType": true,
+    "omnisharp.enableEditorConfigSupport": false,
+    "csharp.semanticHighlighting.enabled": false
+}

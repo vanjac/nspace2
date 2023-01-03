@@ -1,0 +1,3 @@
+Data structures for the world and operations on those structures.
+Code in this folder is written in a "functional" style (functions have no side effects and all
+reference types are immutable with Immut<T>).
