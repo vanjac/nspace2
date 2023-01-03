@@ -31,9 +31,6 @@ public interface Cube {
     }
 
     public struct Leaf {
-        public static readonly Arr3<Face> DEFAULT_FACES =
-            (Face.DEFAULT, Face.DEFAULT, Face.DEFAULT);
-
         public Volume volume;
 
         /// <summary>
@@ -49,6 +46,12 @@ public interface Cube {
         /// </summary>
         public Immut<SplitLeaf> split;
 
+        public Leaf(Volume volume) {
+            this.volume = volume;
+            faces = (Face.DEFAULT, Face.DEFAULT, Face.DEFAULT);
+            split = null;
+        }
+
         public LeafImmut Immut() => new LeafImmut(this);
     }
 
@@ -60,8 +63,8 @@ public interface Cube {
     }
 
     public struct Face {
-        public static readonly Face DEFAULT = new Face { color = Colors.White };
-        public Color color;
+        public static readonly Face DEFAULT = new Face { material = 0 };
+        public int material;
     }
 
     public enum Volume {

@@ -354,9 +354,7 @@ public static class CubeEdit {
                     break;
                 int rootChildI =
                     (rootPt.x < 0 ? 1 : 0) | (rootPt.y < 0 ? 2 : 0) | (rootPt.z < 0 ? 4 : 0);
-                Cube.Branch newRoot = new Cube.Branch(
-                    new Cube.Leaf { volume = world.voidVolume, faces = Cube.Leaf.DEFAULT_FACES }
-                    .Immut());
+                Cube.Branch newRoot = new Cube.Branch(new Cube.Leaf(world.voidVolume).Immut());
                 newRoot.children[rootChildI] = world.root;
 
                 world.root = newRoot.Immut();
@@ -442,7 +440,7 @@ public static class CubeEdit {
     /// <param name="world">The world to be optimized.</param>
     /// <returns>Equivalent optimized version of the world.</returns>
     public static CubeWorld Optimize(CubeWorld world, out CubePos newRootPos, out int shrinkDepth) {
-        var voidLeaf = new Cube.Leaf { volume = world.voidVolume }.Immut();
+        var voidLeaf = new Cube.Leaf(world.voidVolume).Immut();
         world.root = OptimizeCube(world.root, (voidLeaf, voidLeaf, voidLeaf));
         world = ShrinkWorld(world, out newRootPos, out shrinkDepth);
         return world;

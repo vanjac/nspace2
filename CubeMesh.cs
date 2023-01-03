@@ -1,8 +1,14 @@
+using System.Collections.Generic;
 using Godot;
 
 public class CubeMesh : Spatial {
     private ArrayMesh mesh = new ArrayMesh();
     private ConcavePolygonShape shape = new ConcavePolygonShape();
+
+    private struct MeshData {
+        public Dictionary<int, SurfaceTool> surfs;
+        public List<Vector3> shapeTris;
+    }
 
     private class CubeStats {
         // leaves = branches * 7 + 1
@@ -14,40 +20,40 @@ public class CubeMesh : Spatial {
         GetNode<CollisionShape>("StaticBody/CollisionShape").Shape = shape;
     }
 
-    public void UpdateMesh(Cube root, Vector3 pos, float size, Cube.Volume? voidVolume) {
+    public void UpdateMesh(Cube root, Vector3 pos, float size, Cube.Volume? voidVolume,
+            Material[] materials) {
         ulong startTick = Time.GetTicksMsec();
         mesh.ClearSurfaces();
-        var st = new SurfaceTool(); // TODO better approach?
-        st.Begin(Mesh.PrimitiveType.Triangles);
+        var data = new MeshData();
+        data.surfs = new Dictionary<int, SurfaceTool>();
+        data.shapeTris = new List<Vector3>();
         var stats = new CubeStats();
 
-        BuildCube(st, root, pos, size, stats);
+        BuildCube(data, root, pos, size, stats);
         if (voidVolume is Cube.Volume vol) {
-            var voidLeaf = new Cube.Leaf { volume = vol }.Immut();
+            var voidLeaf = new Cube.Leaf(vol).Immut();
             for (int axis = 0; axis < 3; axis++) {
-                BuildBoundary(st, voidLeaf, root, pos, size, axis, stats);
+                BuildBoundary(data, voidLeaf, root, pos, size, axis, stats);
             }
         }
         GD.Print($"Generating mesh took {Time.GetTicksMsec() - startTick}ms"
             + $" with {stats.branches} branches, {stats.boundQuads} quads");
 
         startTick = Time.GetTicksMsec();
-        // TODO probably inefficient! throwing away a lot of work
-        var triangles = (Vector3[])st.CommitToArrays()[(int)Mesh.ArrayType.Vertex];
-        if (triangles != null) {
-            shape.Data = triangles;
-            st.GenerateTangents();
-            st.Index();
-        } else {
-            shape.Data = new Vector3[0];
+        int surfI = 0;
+        foreach (var item in data.surfs) {
+            item.Value.GenerateTangents();
+            item.Value.Index();
+            // TODO: this is slow in Godot 3! https://github.com/godotengine/godot/issues/56524
+            item.Value.Commit(mesh);
+            mesh.SurfaceSetMaterial(surfI++, materials[item.Key]);
         }
-        // TODO: this is slow in Godot 3! https://github.com/godotengine/godot/issues/56524
-        st.Commit(mesh);
+        shape.Data = data.shapeTris.ToArray();
         GD.Print($"Updating mesh took {Time.GetTicksMsec() - startTick}ms");
     }
 
     // TODO would the recursive structure in OptimizeCube work better here?
-    private void BuildCube(SurfaceTool st, Cube cube, Vector3 pos, float size, CubeStats stats) {
+    private void BuildCube(MeshData data, Cube cube, Vector3 pos, float size, CubeStats stats) {
         if (cube is Cube.BranchImmut branch) {
             stats.branches++;
 
@@ -56,23 +62,28 @@ public class CubeMesh : Spatial {
                     int minI = CubeUtil.CycleIndex(i, axis + 1);
                     int maxI = minI | (1 << axis);
                     Vector3 boundPos = pos + CubeUtil.IndexVector(maxI) * (size / 2);
-                    BuildBoundary(st, branch.child(minI), branch.child(maxI),
+                    BuildBoundary(data, branch.child(minI), branch.child(maxI),
                         boundPos, size / 2, axis, stats);
                 }
             }
 
             for (int i = 0; i < 8; i++) {
                 var childPos = pos + CubeUtil.IndexVector(i) * (size / 2);
-                BuildCube(st, branch.child(i), childPos, size / 2, stats);
+                BuildCube(data, branch.child(i), childPos, size / 2, stats);
             }
         }
     }
 
-    private void BuildBoundary(SurfaceTool st, Cube cubeMin, Cube cubeMax,
+    private void BuildBoundary(MeshData data, Cube cubeMin, Cube cubeMax,
             Vector3 pos, float size, int axis, CubeStats stats) {
         if (cubeMin is Cube.LeafImmut leafMin && cubeMax is Cube.LeafImmut leafMax) {
             if (leafMin.Val.volume.Equals(leafMax.Val.volume))
                 return;
+            int material = leafMax.face(axis).material;
+            if (!data.surfs.TryGetValue(material, out SurfaceTool st)) {
+                data.surfs[material] = st = new SurfaceTool();
+                st.Begin(Mesh.PrimitiveType.Triangles);
+            }
             stats.boundQuads++;
             var vS = CubeUtil.IndexVector(CubeUtil.CycleIndex(1, axis + 1)) * size;
             var vT = CubeUtil.IndexVector(CubeUtil.CycleIndex(1, axis + 2)) * size;
@@ -84,13 +95,14 @@ public class CubeMesh : Spatial {
                 verts = new Vector3[] { pos, pos + vS, pos + vS + vT, pos + vT };
                 st.AddNormal(-CubeUtil.IndexVector(1 << axis));
             }
-            st.AddColor(leafMax.face(axis).color);
             var uvs = new Vector2[4];
             for (int i = 0; i < 4; i++) {
                 Vector3 cycleVert = CubeUtil.CycleVector(verts[i], 5 - axis);
                 uvs[i] = new Vector2(cycleVert.x, cycleVert.y);
             }
             st.AddTriangleFan(verts, uvs);
+            data.shapeTris.AddRange(
+                new Vector3[] { verts[0], verts[1], verts[2], verts[0], verts[2], verts[3] });
         } else {
             for (int i = 0; i < 4; i++) {
                 int maxI = CubeUtil.CycleIndex(i, axis + 1);
@@ -100,7 +112,7 @@ public class CubeMesh : Spatial {
                 if (cubeMax is Cube.BranchImmut branchMax)
                     childMax = branchMax.child(maxI);
                 var childPos = pos + CubeUtil.IndexVector(maxI) * (size / 2);
-                BuildBoundary(st, childMin, childMax, childPos, size / 2, axis, stats);
+                BuildBoundary(data, childMin, childMax, childPos, size / 2, axis, stats);
             }
         }
     }
