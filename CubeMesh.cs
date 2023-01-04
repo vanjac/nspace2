@@ -84,13 +84,15 @@ public class CubeMesh : Spatial {
         if (cubeMin is Cube.LeafImmut leafMin && cubeMax is Cube.LeafImmut leafMax) {
             if (leafMin.Val.volume.Equals(leafMax.Val.volume))
                 return;
-            Guid material = leafMax.face(axis).Val.material;
+            Cube.Face face = leafMax.face(axis).Val;
+            bool solidBoundary = leafMin.Val.volume == Cube.Volume.Solid
+                || leafMax.Val.volume == Cube.Volume.Solid;
+            Guid material = solidBoundary ? face.base_ : face.overlay;
             if (!data.surfs.TryGetValue(material, out SurfaceTool st)) {
                 data.surfs[material] = st = new SurfaceTool();
                 st.Begin(Mesh.PrimitiveType.Triangles);
             }
-            var tris = (leafMin.Val.volume == Cube.Volume.Solid
-                || leafMax.Val.volume == Cube.Volume.Solid) ? data.singleTris : data.doubleTris;
+            var tris = solidBoundary ? data.singleTris : data.doubleTris;
             if (leafMax.Val.volume != Cube.Volume.Solid)
                 AddQuad(st, tris, pos, size, axis, true, stats);
             if (leafMin.Val.volume != Cube.Volume.Solid)
