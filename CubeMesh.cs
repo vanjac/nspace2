@@ -87,7 +87,7 @@ public class CubeMesh : Spatial {
             Cube.Face face = leafMax.face(axis).Val;
             bool solidBoundary = leafMin.Val.volume == Cube.Volume.Solid
                 || leafMax.Val.volume == Cube.Volume.Solid;
-            Guid material = solidBoundary ? face.base_ : face.overlay;
+            Guid material = (solidBoundary ? face.base_ : face.overlay).material;
             if (!data.surfs.TryGetValue(material, out SurfaceTool st)) {
                 data.surfs[material] = st = new SurfaceTool();
                 st.Begin(Mesh.PrimitiveType.Triangles);

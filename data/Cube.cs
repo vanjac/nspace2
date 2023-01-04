@@ -64,13 +64,22 @@ public interface Cube {
     }
 
     public struct Face {
+        public static readonly Immut<Face> DEFAULT = Immut.Create(new Face {
+            base_ = new Layer { material = Layer.DEFAULT_BASE },
+            overlay = new Layer { material = Layer.DEFAULT_OVERLAY }
+        });
+
+        public Layer base_, overlay;
+    }
+
+    public struct Layer {
         public static readonly Guid DEFAULT_BASE = new Guid("ee705545-80fe-4e67-a2b5-bf099e40f5e3");
         public static readonly Guid DEFAULT_OVERLAY =
             new Guid("0bbe0d1b-b713-424b-9fe8-1061b9f71d0e");
-        public static readonly Immut<Face> DEFAULT = Immut.Create(
-            new Face { base_ = DEFAULT_BASE, overlay = DEFAULT_OVERLAY });
 
-        public Guid base_, overlay;
+        public Guid material;
+        public byte orientation;
+        public byte uOff, vOff;
     }
 
     public enum Volume {
