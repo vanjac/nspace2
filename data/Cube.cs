@@ -11,7 +11,7 @@ public interface Cube {
     }
     public class LeafImmut : Immut<Leaf>, Cube {
         public LeafImmut(Leaf val) : base(val) { CubeDebug.allocCount++; }
-        public Face face(int i) => Val.faces[i];
+        public Immut<Face> face(int i) => Val.faces[i];
     }
 
     public struct Branch {
@@ -37,7 +37,7 @@ public interface Cube {
         /// 3 faces of the cube on the negative X, negative Y, and negative Z sides.
         /// The other 3 sides are stored in adjacent cubes.
         /// </summary>
-        public Arr3<Face> faces;
+        public Arr3<Immut<Face>> faces;
 
         /// <summary>
         /// Splits the leaf into 2 volumes along some non-axis-aligned boundary.
@@ -63,7 +63,7 @@ public interface Cube {
     }
 
     public struct Face {
-        public static readonly Face DEFAULT = new Face { material = 0 };
+        public static readonly Immut<Face> DEFAULT = Immut.Create(new Face { material = 0 });
         public int material;
     }
 

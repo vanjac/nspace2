@@ -88,7 +88,8 @@ public static class CubeEdit {
     /// <param name="axis">Normal axis of the square.</param>
     /// <param name="face">New value to replace existing faces.</param>
     /// <returns>The root cube with all faces within one square replaced.</returns>
-    public static Cube PutFaces(Cube root, CubePos pos, int depth, int axis, Cube.Face face) {
+    public static Cube PutFaces(Cube root, CubePos pos, int depth, int axis,
+            Immut<Cube.Face> face) {
         if (depth <= 0) {
             return SetAllFaces(root, axis, face);
         } else { // depth > 0
@@ -115,9 +116,9 @@ public static class CubeEdit {
     /// <param name="axis">Normal axis of the plane of faces to be replaced.</param>
     /// <param name="face">New value to replace existing faces.</param>
     /// <returns>The given cube with all faces along one side replaced.</returns>
-    private static Cube SetAllFaces(Cube cube, int axis, Cube.Face face) {
+    private static Cube SetAllFaces(Cube cube, int axis, Immut<Cube.Face> face) {
         if (cube is Cube.LeafImmut leaf) {
-            if (leaf.face(axis).Equals(face)) return cube; // avoid allocation
+            if (leaf.face(axis).Val.Equals(face.Val)) return cube; // avoid allocation
             var newLeaf = leaf.Val;
             newLeaf.faces[axis] = face;
             return newLeaf.Immut();
@@ -507,7 +508,7 @@ public static class CubeEdit {
                     as Cube.LeafImmut;
                 if (minLeaf != null && childLeaf.Val.volume.Equals(minLeaf.Val.volume))
                     continue; // face will not be used since there's no boundary
-                if (!childLeaf.face(axis).Equals(optimized.faces[axis])) {
+                if (!childLeaf.face(axis).Val.Equals(optimized.faces[axis].Val)) {
                     if (hasBoundary)
                         return null; // boundaries are different, can't merge
                     optimized.faces[axis] = childLeaf.face(axis);

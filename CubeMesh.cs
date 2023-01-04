@@ -83,7 +83,7 @@ public class CubeMesh : Spatial {
         if (cubeMin is Cube.LeafImmut leafMin && cubeMax is Cube.LeafImmut leafMax) {
             if (leafMin.Val.volume.Equals(leafMax.Val.volume))
                 return;
-            int material = leafMax.face(axis).material;
+            int material = leafMax.face(axis).Val.material;
             if (!data.surfs.TryGetValue(material, out SurfaceTool st)) {
                 data.surfs[material] = st = new SurfaceTool();
                 st.Begin(Mesh.PrimitiveType.Triangles);
