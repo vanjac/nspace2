@@ -23,7 +23,7 @@ public class CubeMesh : Spatial {
         GetNode<CollisionShape>("StaticBody/DoubleSided").Shape = doubleShape;
     }
 
-    public void UpdateMesh(Cube root, Vector3 pos, float size, Cube.Volume? voidVolume,
+    public void UpdateMesh(Cube root, Vector3 pos, float size, Guid? voidVolume,
             Dictionary<Guid, Material> materials) {
         ulong startTick = Time.GetTicksMsec();
         mesh.ClearSurfaces();
@@ -34,7 +34,7 @@ public class CubeMesh : Spatial {
         var stats = new CubeStats();
 
         BuildCube(data, root, pos, size, stats);
-        if (voidVolume is Cube.Volume vol) {
+        if (voidVolume is Guid vol) {
             var voidLeaf = new Cube.Leaf(vol).Immut();
             for (int axis = 0; axis < 3; axis++) {
                 BuildBoundary(data, voidLeaf, root, pos, size, axis, stats);
@@ -82,20 +82,20 @@ public class CubeMesh : Spatial {
     private void BuildBoundary(MeshData data, Cube cubeMin, Cube cubeMax,
             Vector3 pos, float size, int axis, CubeStats stats) {
         if (cubeMin is Cube.LeafImmut leafMin && cubeMax is Cube.LeafImmut leafMax) {
-            if (leafMin.Val.volume.Equals(leafMax.Val.volume))
+            if (leafMin.Val.volume == leafMax.Val.volume)
                 return;
             Cube.Face face = leafMax.face(axis).Val;
-            bool solidBoundary = leafMin.Val.volume == Cube.Volume.Solid
-                || leafMax.Val.volume == Cube.Volume.Solid;
+            bool solidBoundary = leafMin.Val.volume == Volume.SOLID
+                || leafMax.Val.volume == Volume.SOLID;
             Guid material = (solidBoundary ? face.base_ : face.overlay).material;
             if (!data.surfs.TryGetValue(material, out SurfaceTool st)) {
                 data.surfs[material] = st = new SurfaceTool();
                 st.Begin(Mesh.PrimitiveType.Triangles);
             }
             var tris = solidBoundary ? data.singleTris : data.doubleTris;
-            if (leafMax.Val.volume != Cube.Volume.Solid)
+            if (leafMax.Val.volume != Volume.SOLID)
                 AddQuad(st, tris, pos, size, axis, true, stats);
-            if (leafMin.Val.volume != Cube.Volume.Solid)
+            if (leafMin.Val.volume != Volume.SOLID)
                 AddQuad(st, tris, pos, size, axis, false, stats);
         } else {
             for (int i = 0; i < 4; i++) {

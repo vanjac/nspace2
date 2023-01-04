@@ -235,7 +235,7 @@ public static class CubeEdit {
     /// <returns>The destination cube, with boundary faces transferred to one side.</returns>
     private static Cube TransferFaces(Cube srcMin, Cube srcMax, Cube dst, int axis) {
         if (srcMin is Cube.LeafImmut leafMin && srcMax is Cube.LeafImmut leafMax) {
-            if (leafMin.Val.volume.Equals(leafMax.Val.volume)) {
+            if (leafMin.Val.volume == leafMax.Val.volume) {
                 return dst;
             } else {
                 return SetAllFaces(dst, axis, leafMax.face(axis));
@@ -291,7 +291,7 @@ public static class CubeEdit {
             int srcChildI, int srcFaceAxis, int dstFaceAxis, int extAxis) {
         // TODO a lot of reused code from TransferFaces
         if (srcMin is Cube.LeafImmut leafMin && srcMax is Cube.LeafImmut leafMax) {
-            if (leafMin.Val.volume.Equals(leafMax.Val.volume)) {
+            if (leafMin.Val.volume == leafMax.Val.volume) {
                 return dst;
             } else {
                 return SetAllFaces(dst, dstFaceAxis, leafMax.face(srcFaceAxis));
@@ -421,9 +421,9 @@ public static class CubeEdit {
     /// <returns>
     /// True if all cubes along the given side match the given volume, false otherwise.
     /// </returns>
-    private static bool MaxSideVolumeEqual(Cube cube, int axis, Cube.Volume volume) {
+    private static bool MaxSideVolumeEqual(Cube cube, int axis, Guid volume) {
         if (cube is Cube.LeafImmut leaf) {
-            return leaf.Val.volume.Equals(volume);
+            return leaf.Val.volume == volume;
         } else {
             var branch = cube as Cube.BranchImmut;
             for (int i = 0; i < 4; i++) {
@@ -496,7 +496,7 @@ public static class CubeEdit {
         Cube.Leaf optimized = leaf0.Val;
         for (int i = 1; i < 8; i++) { // skip 0!
             if (!(branch.children[i] is Cube.LeafImmut childLeaf)
-                    || !childLeaf.Val.volume.Equals(optimized.volume))
+                    || childLeaf.Val.volume != optimized.volume)
                 return null;
         }
         bool modified = false;
@@ -506,7 +506,7 @@ public static class CubeEdit {
             for (int i = 0; i < 4; i++) {
                 var childLeaf = branch.children[CubeUtil.CycleIndex(i, axis + 1)]
                     as Cube.LeafImmut;
-                if (minLeaf != null && childLeaf.Val.volume.Equals(minLeaf.Val.volume))
+                if (minLeaf != null && childLeaf.Val.volume == minLeaf.Val.volume)
                     continue; // face will not be used since there's no boundary
                 if (!childLeaf.face(axis).Val.Equals(optimized.faces[axis].Val)) {
                     if (hasBoundary)

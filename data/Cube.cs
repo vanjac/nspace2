@@ -32,7 +32,7 @@ public interface Cube {
     }
 
     public struct Leaf {
-        public Volume volume;
+        public Guid volume;
 
         /// <summary>
         /// 3 faces of the cube on the negative X, negative Y, and negative Z sides.
@@ -47,7 +47,7 @@ public interface Cube {
         /// </summary>
         public Immut<SplitLeaf> split;
 
-        public Leaf(Volume volume) {
+        public Leaf(Guid volume) {
             this.volume = volume;
             faces = (Face.DEFAULT, Face.DEFAULT, Face.DEFAULT);
             split = null;
@@ -57,7 +57,7 @@ public interface Cube {
     }
 
     public struct SplitLeaf {
-        public Volume volume2;
+        public Guid volume2;
         public Shape shape;
         public byte orientation; // see Godot.GridMap
         public Face splitFace;
@@ -65,30 +65,32 @@ public interface Cube {
 
     public struct Face {
         public static readonly Immut<Face> DEFAULT = Immut.Create(new Face {
-            base_ = new Layer { material = Layer.DEFAULT_BASE },
-            overlay = new Layer { material = Layer.DEFAULT_OVERLAY }
+            base_ = new Layer { material = CubeMaterial.DEFAULT_BASE },
+            overlay = new Layer { material = CubeMaterial.DEFAULT_OVERLAY }
         });
 
         public Layer base_, overlay;
     }
 
     public struct Layer {
-        public static readonly Guid DEFAULT_BASE = new Guid("ee705545-80fe-4e67-a2b5-bf099e40f5e3");
-        public static readonly Guid DEFAULT_OVERLAY =
-            new Guid("0bbe0d1b-b713-424b-9fe8-1061b9f71d0e");
-
         public Guid material;
         public byte orientation;
-        public byte uOff, vOff;
-    }
-
-    public enum Volume {
-        Empty, Solid, Fluid
+        public byte uOffset, vOffset;
     }
 
     public enum Shape {
         Cube
     }
+}
+
+public static class CubeMaterial {
+    public static readonly Guid DEFAULT_BASE = new Guid("ee705545-80fe-4e67-a2b5-bf099e40f5e3");
+    public static readonly Guid DEFAULT_OVERLAY = new Guid("0bbe0d1b-b713-424b-9fe8-1061b9f71d0e");
+}
+
+public static class Volume {
+    public static readonly Guid EMPTY = new Guid("e6f63db0-ae21-4237-a8a0-96ce77ef5e75");
+    public static readonly Guid SOLID = new Guid("963d3459-35c5-4460-a674-7779799366dc");
 }
 
 public static class CubeDebug {
