@@ -1,5 +1,6 @@
-using System.Collections.Generic;
 using Godot;
+using System;
+using System.Collections.Generic;
 
 public class CubeMesh : Spatial {
     private ArrayMesh mesh = new ArrayMesh();
@@ -7,7 +8,7 @@ public class CubeMesh : Spatial {
     private ConcavePolygonShape doubleShape = new ConcavePolygonShape();
 
     private struct MeshData {
-        public Dictionary<int, SurfaceTool> surfs;
+        public Dictionary<Guid, SurfaceTool> surfs;
         public List<Vector3> singleTris, doubleTris;
     }
 
@@ -23,11 +24,11 @@ public class CubeMesh : Spatial {
     }
 
     public void UpdateMesh(Cube root, Vector3 pos, float size, Cube.Volume? voidVolume,
-            Material[] materials) {
+            Dictionary<Guid, Material> materials) {
         ulong startTick = Time.GetTicksMsec();
         mesh.ClearSurfaces();
         var data = new MeshData();
-        data.surfs = new Dictionary<int, SurfaceTool>();
+        data.surfs = new Dictionary<Guid, SurfaceTool>();
         data.singleTris = new List<Vector3>();
         data.doubleTris = new List<Vector3>();
         var stats = new CubeStats();
@@ -83,7 +84,7 @@ public class CubeMesh : Spatial {
         if (cubeMin is Cube.LeafImmut leafMin && cubeMax is Cube.LeafImmut leafMax) {
             if (leafMin.Val.volume.Equals(leafMax.Val.volume))
                 return;
-            int material = leafMax.face(axis).Val.material;
+            Guid material = leafMax.face(axis).Val.material;
             if (!data.surfs.TryGetValue(material, out SurfaceTool st)) {
                 data.surfs[material] = st = new SurfaceTool();
                 st.Begin(Mesh.PrimitiveType.Triangles);

@@ -1,4 +1,5 @@
 using Godot;
+using System;
 
 /// <summary>
 /// An immutable node in a voxel octree.
@@ -63,8 +64,8 @@ public interface Cube {
     }
 
     public struct Face {
-        public static readonly Immut<Face> DEFAULT = Immut.Create(new Face { material = 0 });
-        public int material;
+        public static readonly Immut<Face> DEFAULT = Immut.Create(new Face());
+        public Guid material;
     }
 
     public enum Volume {
