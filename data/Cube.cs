@@ -68,7 +68,7 @@ public interface Cube {
     }
 
     public enum Volume {
-        Empty, Solid
+        Empty, Solid, Fluid
     }
 
     public enum Shape {

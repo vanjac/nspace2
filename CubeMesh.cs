@@ -3,11 +3,12 @@ using Godot;
 
 public class CubeMesh : Spatial {
     private ArrayMesh mesh = new ArrayMesh();
-    private ConcavePolygonShape shape = new ConcavePolygonShape();
+    private ConcavePolygonShape singleShape = new ConcavePolygonShape();
+    private ConcavePolygonShape doubleShape = new ConcavePolygonShape();
 
     private struct MeshData {
         public Dictionary<int, SurfaceTool> surfs;
-        public List<Vector3> shapeTris;
+        public List<Vector3> singleTris, doubleTris;
     }
 
     private class CubeStats {
@@ -17,7 +18,8 @@ public class CubeMesh : Spatial {
 
     public override void _Ready() {
         GetNode<MeshInstance>("MeshInstance").Mesh = mesh;
-        GetNode<CollisionShape>("StaticBody/CollisionShape").Shape = shape;
+        GetNode<CollisionShape>("StaticBody/SingleSided").Shape = singleShape;
+        GetNode<CollisionShape>("StaticBody/DoubleSided").Shape = doubleShape;
     }
 
     public void UpdateMesh(Cube root, Vector3 pos, float size, Cube.Volume? voidVolume,
@@ -26,7 +28,8 @@ public class CubeMesh : Spatial {
         mesh.ClearSurfaces();
         var data = new MeshData();
         data.surfs = new Dictionary<int, SurfaceTool>();
-        data.shapeTris = new List<Vector3>();
+        data.singleTris = new List<Vector3>();
+        data.doubleTris = new List<Vector3>();
         var stats = new CubeStats();
 
         BuildCube(data, root, pos, size, stats);
@@ -48,7 +51,8 @@ public class CubeMesh : Spatial {
             item.Value.Commit(mesh);
             mesh.SurfaceSetMaterial(surfI++, materials[item.Key]);
         }
-        shape.Data = data.shapeTris.ToArray();
+        singleShape.Data = data.singleTris.ToArray();
+        doubleShape.Data = data.doubleTris.ToArray();
         GD.Print($"Updating mesh took {Time.GetTicksMsec() - startTick}ms");
     }
 
@@ -84,25 +88,12 @@ public class CubeMesh : Spatial {
                 data.surfs[material] = st = new SurfaceTool();
                 st.Begin(Mesh.PrimitiveType.Triangles);
             }
-            stats.boundQuads++;
-            var vS = CubeUtil.IndexVector(CubeUtil.CycleIndex(1, axis + 1)) * size;
-            var vT = CubeUtil.IndexVector(CubeUtil.CycleIndex(1, axis + 2)) * size;
-            Vector3[] verts;
-            if (leafMax.Val.volume == Cube.Volume.Empty) {
-                verts = new Vector3[] { pos, pos + vT, pos + vS + vT, pos + vS };
-                st.AddNormal(CubeUtil.IndexVector(1 << axis));
-            } else {
-                verts = new Vector3[] { pos, pos + vS, pos + vS + vT, pos + vT };
-                st.AddNormal(-CubeUtil.IndexVector(1 << axis));
-            }
-            var uvs = new Vector2[4];
-            for (int i = 0; i < 4; i++) {
-                Vector3 cycleVert = CubeUtil.CycleVector(verts[i], 5 - axis);
-                uvs[i] = new Vector2(cycleVert.x, cycleVert.y);
-            }
-            st.AddTriangleFan(verts, uvs);
-            data.shapeTris.AddRange(
-                new Vector3[] { verts[0], verts[1], verts[2], verts[0], verts[2], verts[3] });
+            var tris = (leafMin.Val.volume == Cube.Volume.Solid
+                || leafMax.Val.volume == Cube.Volume.Solid) ? data.singleTris : data.doubleTris;
+            if (leafMax.Val.volume != Cube.Volume.Solid)
+                AddQuad(st, tris, pos, size, axis, true, stats);
+            if (leafMin.Val.volume != Cube.Volume.Solid)
+                AddQuad(st, tris, pos, size, axis, false, stats);
         } else {
             for (int i = 0; i < 4; i++) {
                 int maxI = CubeUtil.CycleIndex(i, axis + 1);
@@ -115,5 +106,27 @@ public class CubeMesh : Spatial {
                 BuildBoundary(data, childMin, childMax, childPos, size / 2, axis, stats);
             }
         }
+    }
+
+    private void AddQuad(SurfaceTool st, List<Vector3> tris,
+            Vector3 pos, float size, int axis, bool dir, CubeStats stats) {
+        stats.boundQuads++;
+        var vS = CubeUtil.IndexVector(CubeUtil.CycleIndex(1, axis + 1)) * size;
+        var vT = CubeUtil.IndexVector(CubeUtil.CycleIndex(1, axis + 2)) * size;
+        Vector3[] verts;
+        if (dir) {
+            verts = new Vector3[] { pos, pos + vT, pos + vS + vT, pos + vS };
+            st.AddNormal(CubeUtil.IndexVector(1 << axis));
+        } else {
+            verts = new Vector3[] { pos, pos + vS, pos + vS + vT, pos + vT };
+            st.AddNormal(-CubeUtil.IndexVector(1 << axis));
+        }
+        var uvs = new Vector2[4];
+        for (int i = 0; i < 4; i++) {
+            Vector3 cycleVert = CubeUtil.CycleVector(verts[i], 5 - axis);
+            uvs[i] = new Vector2(cycleVert.x, cycleVert.y);
+        }
+        st.AddTriangleFan(verts, uvs);
+        tris.AddRange(new Vector3[] { verts[0], verts[1], verts[2], verts[0], verts[2], verts[3] });
     }
 }
