@@ -5,7 +5,7 @@ public static class FileConst {
     public static readonly uint WRITER_VERSION = 0x00000001;
     public static readonly uint COMPAT_VERSION = 0x00000001;
 
-    public const objnum NO_OBJECT = 0xFFFF;
+    public const objnum NO_OBJECT = objnum.MaxValue;
 
     public enum Type : ushort {
         Guid, Face, Leaf, Cube, World,
