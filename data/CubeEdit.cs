@@ -136,37 +136,37 @@ public static class CubeEdit {
     }
 
     /// <summary>
-    /// Copy a cube to a new location, along with surrounding faces.
+    /// Copy a cube from one location to another, along with surrounding faces.
     /// </summary>
-    /// <param name="srcRoot">
-    /// The root cube in which the cube to be copied and target location exists.
-    /// </param>
-    /// <param name="dstRoot">The root which will be modified to move the cube.</param>
-    /// <param name="fromPos">Location of the cube to be copied.</param>
-    /// <param name="toPos">Location to copy the cube.</param>
-    /// <param name="depth">Depth of cube to copy within the root.</param>
+    /// <param name="srcRoot">The root cube in which the cube to be copied exists.</param>
+    /// <param name="srcPos">Location of the cube to be copied.</param>
+    /// <param name="srcDepth">Depth of cube to be copied within the root.</param>
+    /// <param name="dstRoot">The root which will be modified to place the copied cube.</param>
+    /// <param name="dstPos">Location to copy the cube.</param>
+    /// <param name="dstDepth">Depth in root to copy the cube.</param>
     /// <returns>dstRoot with the cube from srcRoot copied to its new location.</returns>
-    public static Cube TransferCube(Cube srcRoot, Cube dstRoot, CubePos fromPos, CubePos toPos,
-            int depth) {
-        uint size = CubePos.CubeSize(depth);
-        Cube original = GetCube(srcRoot, fromPos, depth);
-        Cube copied = original;
-        Cube oldTarget = GetCube(srcRoot, toPos, depth);
+    public static Cube TransferCube(Cube srcRoot, CubePos srcPos, int srcDepth,
+            Cube dstRoot, CubePos dstPos, int dstDepth) {
+        Cube oldSrcCube = GetCube(srcRoot, srcPos, srcDepth);
+        Cube copied = oldSrcCube;
+        Cube oldDstCube = GetCube(dstRoot, dstPos, dstDepth);
         // TODO skip if adjacent selection
         for (int axis = 0; axis < 3; axis++) {
-            CubePos axisOff = CubePos.Axis(axis, size);
-            // transfer min face from existing cube at toPos (since it's overwritten with copied)
-            copied = TransferFaces(GetCube(srcRoot, toPos - axisOff, depth), oldTarget,
+            CubePos srcAxisOff = CubePos.Axis(axis, CubePos.CubeSize(srcDepth));
+            CubePos dstAxisOff = CubePos.Axis(axis, CubePos.CubeSize(dstDepth));
+            // transfer min face from existing cube at dstPos (since it's overwritten with copied)
+            copied = TransferFaces(GetCube(dstRoot, dstPos - dstAxisOff, dstDepth), oldDstCube,
                 copied, axis);
-            // transfer min face from cube at fromPos
-            copied = TransferFaces(GetCube(srcRoot, fromPos - axisOff, depth), original,
+            // transfer min face from cube at srcPos
+            copied = TransferFaces(GetCube(srcRoot, srcPos - srcAxisOff, srcDepth), oldSrcCube,
                 copied, axis);
-            // transfer max face from cube at fromPos
-            dstRoot = CubeApply(dstRoot, toPos + axisOff, depth, c => {
-                return TransferFaces(original, GetCube(srcRoot, fromPos + axisOff, depth), c, axis);
+            // transfer max face from cube at srcPos
+            dstRoot = CubeApply(dstRoot, dstPos + dstAxisOff, dstDepth, c => {
+                return TransferFaces(oldSrcCube, GetCube(srcRoot, srcPos + srcAxisOff, srcDepth),
+                    c, axis);
             });
         }
-        dstRoot = PutCube(dstRoot, toPos, depth, copied);
+        dstRoot = PutCube(dstRoot, dstPos, dstDepth, copied);
         return dstRoot;
     }
 
@@ -185,7 +185,8 @@ public static class CubeEdit {
     /// If true, side will be extruded in the positive direction along the axis; if false, negative.
     /// </param>
     /// <returns>dstRoot with the side from srcRoot extruded.</returns>
-    public static Cube Extrude(Cube srcRoot, Cube dstRoot, CubePos pos, int depth, int axis, bool dir) {
+    public static Cube Extrude(Cube srcRoot, Cube dstRoot,
+            CubePos pos, int depth, int axis, bool dir) {
         // TODO: split into smaller functions
         uint size = CubePos.CubeSize(depth);
         CubePos axisOff = CubePos.Axis(axis, size);
