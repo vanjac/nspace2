@@ -50,7 +50,8 @@ public class CubeMesh : Spatial {
             item.Value.Index();
             // TODO: this is slow in Godot 3! https://github.com/godotengine/godot/issues/56524
             item.Value.Commit(mesh);
-            mesh.SurfaceSetMaterial(surfI++, materials[item.Key]);
+            if (materials.TryGetValue(item.Key, out Material mat))
+                mesh.SurfaceSetMaterial(surfI++, mat);
         }
         singleShape.Data = data.singleTris.ToArray();
         doubleShape.Data = data.doubleTris.ToArray();
