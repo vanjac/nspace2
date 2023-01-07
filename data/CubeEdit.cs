@@ -78,6 +78,43 @@ public static class CubeEdit {
     }
 
     /// <summary>
+    /// Set all volumes within a cube located in the root.
+    /// </summary>
+    /// <param name="root">Root cube containting the cube to modify.</param>
+    /// <param name="pos">Position of cube to modify.</param>
+    /// <param name="depth">Depth of cube to modify in root.</param>
+    /// <param name="volume">Volume to set within the cube.</param>
+    /// <returns>The root with all volumes in one cube replaced.</returns>
+    public static Cube PutVolumes(Cube root, CubePos pos, int depth, Guid volume) {
+        return CubeApply(root, pos, depth, c => SetAllVolumes(c, volume));
+    }
+
+    /// <summary>
+    /// Set all volumes in the cube.
+    /// </summary>
+    /// <param name="cube">Cube to modify.</param>
+    /// <param name="volume">New volume.</param>
+    /// <returns>The cube with all volumes replaced recursively.</returns>
+    private static Cube SetAllVolumes(Cube cube, Guid volume) {
+        // TODO this could optimize like OptimizeCube()
+        if (cube is Cube.LeafImmut leaf) {
+            if (leaf.Val.volume == volume) return cube; // avoid allocation
+            var newLeaf = leaf.Val;
+            newLeaf.volume = volume;
+            return newLeaf.Immut();
+        } else {
+            var newBranch = (cube as Cube.BranchImmut).Val;
+            bool modified = false;
+            for (int i = 0; i < 8; i++) {
+                newBranch.children[i] = Util.AssignChanged(newBranch.children[i],
+                    SetAllVolumes(newBranch.children[i], volume), ref modified);
+            }
+            if (!modified) return cube; // avoid allocation
+            return newBranch.Immut();
+        }
+    }
+
+    /// <summary>
     /// Set all faces within a square aligned to the side of one cube.
     /// </summary>
     /// <param name="root">Root cube in which the square is located.</param>
@@ -90,23 +127,7 @@ public static class CubeEdit {
     /// <returns>The root cube with all faces within one square replaced.</returns>
     public static Cube PutFaces(Cube root, CubePos pos, int depth, int axis,
             Immut<Cube.Face> face) {
-        if (depth <= 0) {
-            return SetAllFaces(root, axis, face);
-        } else { // depth > 0
-            Cube.Branch newBranch;
-            if (root is Cube.BranchImmut branch) {
-                newBranch = branch.Val;
-            } else {
-                newBranch = new Cube.Branch(root);
-            }
-            int childI = pos.ChildIndex();
-            bool modified = false;
-            newBranch.children[childI] = Util.AssignChanged(newBranch.children[childI],
-                PutFaces(newBranch.children[childI], pos.ToChild(), depth - 1, axis, face),
-                ref modified);
-            if (!modified) return root; // avoid allocation
-            return newBranch.Immut();
-        }
+        return CubeApply(root, pos, depth, c => SetAllFaces(c, axis, face));
     }
 
     /// <summary>
