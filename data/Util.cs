@@ -53,7 +53,7 @@ public struct Arr3<T> {
         => new Arr3<T> { Items = tuple };
 
     public T this[int i] {
-        get {
+        readonly get {
             switch (i) {
                 case 0: return Items.Item1;
                 case 1: return Items.Item2;
@@ -87,7 +87,7 @@ public struct Arr8<T> {
         => new Arr8<T> { Items = tuple };
 
     public T this[int i] {
-        get {
+        readonly get {
             switch (i) {
                 case 0: return Items.Item1;
                 case 1: return Items.Item2;

@@ -125,7 +125,7 @@ public struct CubePos {
     }
 
     public uint this[int i] {
-        get {
+        readonly get {
             switch (i % 3) {
                 case 0: return x;
                 case 1: return y;
@@ -178,7 +178,7 @@ public struct CubePos {
     /// Convert to a vector with coordinates in the range 0 to 1.
     /// </summary>
     /// <returns>Vector between (0,0,0) and (1,1,1).</returns>
-    public Vector3 ToUnitPos() {
+    public readonly Vector3 ToUnitPos() {
         return new Vector3(x, y, z) / UNIT;
     }
 
@@ -187,7 +187,7 @@ public struct CubePos {
     /// </summary>
     /// <param name="depth">Depth of the descendent cube.</param>
     /// <returns>CubePos where each coordinate is some multiple of CubeSize(depth).</returns>
-    public CubePos Floor(int depth) {
+    public readonly CubePos Floor(int depth) {
         uint mask = ~0u << (32 - depth);
         return new CubePos(x & mask, y & mask, z & mask);
     }
@@ -196,7 +196,7 @@ public struct CubePos {
     /// Get the index of the child of a branch that would contain this CubePos.
     /// </summary>
     /// <returns>Child index (0-7).</returns>
-    public int ChildIndex() {
+    public readonly int ChildIndex() {
         return (int)(((x >> 31) & 1) | ((y >> 30) & 2) | ((z >> 29) & 4));
     }
 
@@ -205,7 +205,7 @@ public struct CubePos {
     /// (whichever child contains the point, given by ChildIndex()).
     /// </summary>
     /// <returns>CubePos in child's coordinates.</returns>
-    public CubePos ToChild() {
+    public readonly CubePos ToChild() {
         return ToDescendant(1);
     }
 
@@ -214,7 +214,7 @@ public struct CubePos {
     /// </summary>
     /// <param name="depth">Depth of the descendant cube.</param>
     /// <returns>CubePos in descendant's coordinates.</returns>
-    public CubePos ToDescendant(int depth) {
+    public readonly CubePos ToDescendant(int depth) {
         return new CubePos(x << depth, y << depth, z << depth);
     }
 
@@ -223,7 +223,7 @@ public struct CubePos {
     /// </summary>
     /// <param name="childI">Index of the child in the parent branch.</param>
     /// <returns>CubePos in parent's coordinates.</returns>
-    public CubePos ToParent(int childI) {
+    public readonly CubePos ToParent(int childI) {
         return new CubePos(
             (x >> 1) | (((uint)childI & 1) << 31),
             (y >> 1) | (((uint)childI & 2) << 30),
@@ -237,11 +237,11 @@ public struct CubePos {
     /// <param name="descPos">Position of the descendant cube within the ancestor.</param>
     /// <param name="depth">Depth of the descendant cube.</param>
     /// <returns>CubePos in ancestor's coordinates.</returns>
-    public CubePos ToAncestor(CubePos descPos, int depth) {
+    public readonly CubePos ToAncestor(CubePos descPos, int depth) {
         return new CubePos(x >> depth, y >> depth, z >> depth) + descPos;
     }
 
-    public override string ToString() {
+    public readonly override string ToString() {
         return $"<{x:X8}, {y:X8}, {z:X8}>";
     }
 
