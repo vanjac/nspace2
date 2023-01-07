@@ -524,7 +524,8 @@ public static class CubeEdit {
                 Arr3<Cube> childMinCubes = new Arr3<Cube>();
                 for (int axis = 0; axis < 3; axis++) {
                     if ((i & (1 << axis)) != 0) {
-                        childMinCubes[axis] = branch.child(i & ~(1 << axis)); // ok to use old child
+                        // use new child (always lower index, so already optimized!)
+                        childMinCubes[axis] = newBranch.children[i & ~(1 << axis)];
                     } else if (minCubes[axis] is Cube.BranchImmut branchMin) {
                         childMinCubes[axis] = branchMin.child(i | (1 << axis));
                     } else {
