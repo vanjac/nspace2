@@ -22,6 +22,7 @@ public static class Util {
 /// </summary>
 /// <typeparam name="T">Type of value to be made immutable.</typeparam>
 public class Immut<T> {
+    [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.RootHidden)]
     public readonly T Val;
 
     public Immut(T val) {
@@ -43,7 +44,8 @@ public static class Immut {
 /// </summary>
 /// <typeparam name="T">Type of item contained in the array</typeparam>
 public struct Arr3<T> {
-    private ValueTuple<T, T, T> Items;
+    [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.RootHidden)]
+    public ValueTuple<T, T, T> Items;
 
     public Arr3(T item1, T item2, T item3) {
         Items = (item1, item2, item3);
@@ -77,7 +79,8 @@ public struct Arr3<T> {
 /// </summary>
 /// <typeparam name="T">Type of item contained in the array</typeparam>
 public struct Arr8<T> {
-    private ValueTuple<T, T, T, T, T, T, T, ValueTuple<T>> Items;
+    [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.RootHidden)]
+    public ValueTuple<T, T, T, T, T, T, T, ValueTuple<T>> Items;
 
     public Arr8(T item1, T item2, T item3, T item4, T item5, T item6, T item7, T item8) {
         Items = (item1, item2, item3, item4, item5, item6, item7, item8);

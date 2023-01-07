@@ -22,6 +22,7 @@ public interface Cube {
         /// then positive, with the Z plane taking highest precedence, then Y, then X.
         /// (-Z-Y-X, -Z-Y+X, -Z+Y-X, -Z+Y+X, +Z-Y-X, +Z-Y+X, +Z+Y-X, +Z+Y+X)
         /// </summary>
+        [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.RootHidden)]
         public Arr8<Cube> children;
 
         public Branch(Cube all) {
