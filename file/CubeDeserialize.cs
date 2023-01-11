@@ -11,14 +11,22 @@ public class CubeDeserialize {
     private Immut<Cube.Face>[] faces;
     private Cube.LeafImmut[] leaves;
     private Cube[] cubes;
+    private Immut<CubeWorld>[] worlds;
 
     // 12 bytes
     private Vector3 DeserializeVector3(BinaryReader reader) {
         Vector3 v = new Vector3();
-        v.x = reader.ReadSingle();
-        v.y = reader.ReadSingle();
-        v.z = reader.ReadSingle();
+        for (int i = 0; i < 3; i++)
+            v[i] = reader.ReadSingle();
         return v;
+    }
+
+    // 12 bytes
+    private CubePos DeserializeCubePos(BinaryReader reader) {
+        CubePos p = new CubePos();
+        for (int i = 0; i < 3; i++)
+            p[i] = reader.ReadUInt32();
+        return p;
     }
 
     // 16 bytes
@@ -82,6 +90,24 @@ public class CubeDeserialize {
         return Immut.Create(world);
     }
 
+    // 56 bytes
+    private EditState DeserializeEditor(BinaryReader reader) {
+        EditState editor = new EditState();
+        editor.world = worlds[reader.ReadUInt16()];
+        editor.editDepth = reader.ReadUInt16();
+        editor.camFocus = DeserializeVector3(reader);
+        editor.camYaw = reader.ReadSingle();
+        editor.camPitch = reader.ReadSingle();
+        editor.camZoom = reader.ReadSingle();
+        editor.selMode = (SelectMode)reader.ReadUInt16();
+        ushort selIdx = reader.ReadUInt16();
+        editor.selAxis = selIdx / 2;
+        editor.selDir = (selIdx % 2) == 1;
+        editor.selMin = DeserializeCubePos(reader);
+        editor.selMax = DeserializeCubePos(reader);
+        return editor;
+    }
+
     private T[] LoadObjects<T>(BinaryReader reader, FileConst.Type type, int minSize,
             Func<BinaryReader, T> loadFn) {
         if (!directory.TryGetValue(type, out FileObj.DirEntry entry))
@@ -104,7 +130,7 @@ public class CubeDeserialize {
         return objs;
     }
 
-    public Immut<CubeWorld> ReadFile(Stream stream) {
+    public EditState ReadFile(Stream stream) {
         using (var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, true)) {
             byte[] magic = reader.ReadBytes(4);
             if (!System.Linq.Enumerable.SequenceEqual(magic, FileConst.MAGIC))
@@ -131,9 +157,10 @@ public class CubeDeserialize {
             faces = LoadObjects(reader, FileConst.Type.Face, 10, DeserializeFace);
             leaves = LoadObjects(reader, FileConst.Type.Leaf, 8, DeserializeLeaf);
             cubes = LoadObjects(reader, FileConst.Type.Cube, 0, DeserializeCube);
-            Immut<CubeWorld>[] worlds = LoadObjects(
-                reader, FileConst.Type.World, 20, DeserializeWorld);
-            return worlds[0]; // TODO don't load others
+            worlds = LoadObjects(reader, FileConst.Type.World, 20, DeserializeWorld);
+            EditState[] editors = LoadObjects(reader, FileConst.Type.Editor, 56, DeserializeEditor);
+
+            return editors[0]; // TODO don't load others
         }
     }
 }

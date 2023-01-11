@@ -8,7 +8,7 @@ public static class FileConst {
     public const objnum NO_OBJECT = objnum.MaxValue;
 
     public enum Type : ushort {
-        Guid, Face, Leaf, Cube, World,
+        Guid, Face, Leaf, Cube, World, Editor,
         Count
     }
 }
