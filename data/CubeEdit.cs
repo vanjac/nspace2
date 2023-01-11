@@ -96,7 +96,6 @@ public static class CubeEdit {
     /// <param name="volume">New volume.</param>
     /// <returns>The cube with all volumes replaced recursively.</returns>
     private static Cube SetAllVolumes(Cube cube, Guid volume) {
-        // TODO this could optimize like OptimizeCube()
         if (cube is Cube.LeafImmut leaf) {
             if (leaf.Val.volume == volume) return cube; // avoid allocation
             var newLeaf = leaf.Val;
@@ -105,11 +104,19 @@ public static class CubeEdit {
         } else {
             var newBranch = (cube as Cube.BranchImmut).Val;
             bool modified = false;
-            for (int i = 0; i < 8; i++) {
+            for (int i = 0; i < 7; i++) { // skip 7!
                 newBranch.children[i] = Util.AssignChanged(newBranch.children[i],
                     SetAllVolumes(newBranch.children[i], volume), ref modified);
             }
-            if (!modified) return cube; // avoid allocation
+            if (newBranch.children[7] is Cube.LeafImmut lastLeaf) {
+                newBranch.children[7] = Util.AssignChanged(newBranch.children[7],
+                    SetAllVolumes(lastLeaf, volume), ref modified);
+                if (!modified) return cube; // avoid allocation
+            } else {
+                // if child 7 is a branch it can safely be replaced with a leaf
+                // since none of its faces will be boundaries
+                newBranch.children[7] = new Cube.Leaf(volume).Immut();
+            }
             return newBranch.Immut();
         }
     }
