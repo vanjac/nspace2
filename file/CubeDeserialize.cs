@@ -137,7 +137,7 @@ public class CubeDeserialize {
                 throw new Exception("File format not supported");
             stream.Position = 8;
             uint compatVersion = reader.ReadUInt32();
-            if (compatVersion > FileConst.COMPAT_VERSION)
+            if (compatVersion > FileConst.WRITER_VERSION)
                 throw new Exception("File requires a newer version");
             byte dirLen = reader.ReadByte();
 
