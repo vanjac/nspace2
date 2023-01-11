@@ -12,7 +12,7 @@ public class CubeMesh : Spatial {
         public List<Vector3> singleTris, doubleTris;
     }
 
-    private class CubeStats {
+    public class CubeStats {
         // leaves = branches * 7 + 1
         public int branches, boundQuads;
     }
@@ -23,7 +23,7 @@ public class CubeMesh : Spatial {
         GetNode<CollisionShape>("StaticBody/DoubleSided").Shape = doubleShape;
     }
 
-    public void UpdateMesh(Cube root, Vector3 pos, float size, Guid? voidVolume,
+    public CubeStats UpdateMesh(Cube root, Vector3 pos, float size, Guid? voidVolume,
             Dictionary<Guid, Material> materials) {
         ulong startTick = Time.GetTicksMsec();
         mesh.ClearSurfaces();
@@ -40,8 +40,7 @@ public class CubeMesh : Spatial {
                 BuildBoundary(data, voidLeaf, root, pos, size, axis, stats);
             }
         }
-        GD.Print($"Generating mesh took {Time.GetTicksMsec() - startTick}ms"
-            + $" with {stats.branches} branches, {stats.boundQuads} quads");
+        GD.Print($"Generating mesh took {Time.GetTicksMsec() - startTick}ms");
 
         startTick = Time.GetTicksMsec();
         int surfI = 0;
@@ -56,6 +55,7 @@ public class CubeMesh : Spatial {
         singleShape.Data = data.singleTris.ToArray();
         doubleShape.Data = data.doubleTris.ToArray();
         GD.Print($"Updating mesh took {Time.GetTicksMsec() - startTick}ms");
+        return stats;
     }
 
     // TODO would the recursive structure in OptimizeCube work better here?
