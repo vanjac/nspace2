@@ -19,8 +19,8 @@ public class CubeMesh : Spatial {
 
     public override void _Ready() {
         GetNode<MeshInstance>("MeshInstance").Mesh = mesh;
-        GetNode<CollisionShape>("StaticBody/SingleSided").Shape = singleShape;
-        GetNode<CollisionShape>("StaticBody/DoubleSided").Shape = doubleShape;
+        GetNode<CollisionShape>("SingleSided/CollisionShape").Shape = singleShape;
+        GetNode<CollisionShape>("DoubleSided/CollisionShape").Shape = doubleShape;
     }
 
     public CubeStats UpdateMesh(Cube root, Vector3 pos, float size, Guid? voidVolume,
