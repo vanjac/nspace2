@@ -27,6 +27,7 @@ public class TouchController : Node {
     private Dictionary<int, Vector2> touchPositions = new Dictionary<int, Vector2>();
     private int singleTouch;
     private TouchState singleTouchState;
+    private AdjustHandle grabbedHandle;
 
     public override void _Ready() {
         NodeRefAttribute.GetAllNodes(this);
@@ -50,7 +51,7 @@ public class TouchController : Node {
                             EmitSignal(nameof(SelectEnd));
                             break;
                         case TouchState.Adjust:
-                            // TODO end adjust
+                            grabbedHandle.OnRelease();
                             break;
                     }
                     GetTree().SetInputAsHandled();
@@ -69,7 +70,8 @@ public class TouchController : Node {
                             EmitSignal(nameof(SelectDrag), pos, norm);
                         break;
                     case TouchState.Adjust:
-                        // TODO adjust
+                        grabbedHandle.OnDrag(nCamera.ProjectRayOrigin(drag.Position),
+                            nCamera.ProjectRayNormal(drag.Position));
                         break;
                 }
             } else if (touchPositions.Count > 1) {
@@ -82,16 +84,10 @@ public class TouchController : Node {
             }
         } else if (ev is InputEventMouseButton button && button.Pressed) {
             int index = button.ButtonIndex;
-            if (index == (int)ButtonList.Middle || index == (int)ButtonList.Right
-                    || index == (int)ButtonList.WheelUp || index == (int)ButtonList.WheelDown) {
+            if (index == (int)ButtonList.Middle || index == (int)ButtonList.Right) {
                 if (RayCastCursor(button.Position, out Vector3 pos, out _, out _))
                     EmitSignal(nameof(CameraRefocus), pos.DistanceTo(nCamera.GlobalTranslation));
                 GetTree().SetInputAsHandled();
-            }
-            if (index == (int)ButtonList.WheelUp) {
-                EmitSignal(nameof(CameraZoom), 1.0f / (1 + ZOOM_SCALE));
-            } else if (index == (int)ButtonList.WheelDown) {
-                EmitSignal(nameof(CameraZoom), 1 + ZOOM_SCALE);
             }
         } else if (ev is InputEventMouseMotion motion) {
             if ((motion.ButtonMask & (int)ButtonList.MaskRight) != 0) {
@@ -116,11 +112,25 @@ public class TouchController : Node {
                     EmitSignal(nameof(SelectStart), pos, norm);
                 } else if ((obj.CollisionLayer & (1 << PhysicsLayers.AdjustHandle)) != 0) {
                     singleTouchState = TouchState.Adjust;
-                    // TODO start adjust
+                    grabbedHandle = (AdjustHandle)obj.GetParent();
+                    grabbedHandle.OnPress(nCamera.ProjectRayOrigin(touch.Position),
+                        nCamera.ProjectRayNormal(touch.Position));
                 }
             }
             if (singleTouchState == TouchState.None)
                 EmitSignal(nameof(SelectClear));
+        } else if (ev is InputEventMouseButton button && button.Pressed) {
+            int index = button.ButtonIndex;
+            if (index == (int)ButtonList.WheelUp || index == (int)ButtonList.WheelDown) {
+                if (RayCastCursor(button.Position, out Vector3 pos, out _, out _))
+                    EmitSignal(nameof(CameraRefocus), pos.DistanceTo(nCamera.GlobalTranslation));
+                GetTree().SetInputAsHandled();
+            }
+            if (index == (int)ButtonList.WheelUp) {
+                EmitSignal(nameof(CameraZoom), 1.0f / (1 + ZOOM_SCALE));
+            } else if (index == (int)ButtonList.WheelDown) {
+                EmitSignal(nameof(CameraZoom), 1 + ZOOM_SCALE);
+            }
         }
     }
 
