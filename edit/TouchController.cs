@@ -5,8 +5,9 @@ using System.Collections.Generic;
 public class TouchController : Node {
     private const float MAX_SELECT_DIST = 1000;
     private const float SCROLL_ZOOM_SCALE = 0.08f;
+    private const float PINCH_ZOOM_EXP = 1.5f;
     private const float ROTATE_SCALE = .015f;
-    private const float PAN_SCALE = .003f;
+    private const float PAN_SCALE = .004f;
 
     private enum TouchState {
         None, CameraOnly, Gui, SelectPending, SelectDrag, Adjust
@@ -42,6 +43,7 @@ public class TouchController : Node {
                     singleTouch = touch.Index;
                     singleTouchState = TouchState.Gui; // assume GUI until caught by _UnhandledInput
                 } else {
+                    RefocusCursor(AverageTouchPosition());
                     GetTree().SetInputAsHandled();
                 }
                 if (touchPositions.Count == 2 && (singleTouchState == TouchState.None
@@ -102,7 +104,8 @@ public class TouchController : Node {
             }
             if (touchPositions.Count == 2) {
                 RotateRelative(drag.Relative / 2);
-                EmitSignal(nameof(CameraZoom), oldPinchWidth / PinchWidth());
+                float factor = Mathf.Pow(oldPinchWidth / PinchWidth(), PINCH_ZOOM_EXP);
+                EmitSignal(nameof(CameraZoom), factor);
             } else if (touchPositions.Count == 3) {
                 PanRelative(drag.Relative / 3);
             }
@@ -136,8 +139,8 @@ public class TouchController : Node {
                             nCamera.ProjectRayNormal(touch.Position));
                     }
                 }
+                RefocusCursor(AverageTouchPosition());
             }
-            RefocusCursor(AverageTouchPosition());
         } else if (ev is InputEventMouseButton button && button.Pressed) {
             int index = button.ButtonIndex;
             if (index == (int)ButtonList.WheelUp || index == (int)ButtonList.WheelDown) {

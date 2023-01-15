@@ -2,6 +2,8 @@ using Godot;
 using System;
 
 public class AdjustHandle : Spatial {
+    [Export] public Material material;
+
     [Signal] delegate void AdjustStart();
     [Signal] delegate void Adjust(int units);
     [Signal] delegate void AdjustEnd();
@@ -16,6 +18,8 @@ public class AdjustHandle : Spatial {
 
     public override void _Ready() {
         NodeRefAttribute.GetAllNodes(this);
+        nLine.GetNode<MeshInstance>("MeshInstance").MaterialOverride = material;
+        nHandle.GetNode<MeshInstance>("MeshInstance").MaterialOverride = material;
         camera = GetViewport().GetCamera();
     }
 
