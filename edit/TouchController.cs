@@ -4,12 +4,12 @@ using System.Collections.Generic;
 
 public class TouchController : Node {
     private const float MAX_SELECT_DIST = 1000;
-    private const float ZOOM_SCALE = 0.08f;
-    private const float ROTATE_SCALE = 5.0f;
-    private const float PAN_SCALE = 1.5f;
+    private const float SCROLL_ZOOM_SCALE = 0.08f;
+    private const float ROTATE_SCALE = .015f;
+    private const float PAN_SCALE = .003f;
 
     private enum TouchState {
-        None, Gui, Select, Adjust
+        None, CameraOnly, Gui, Select, Adjust
     }
 
     [Signal] delegate void SelectStart(Vector3 pos, Vector3 norm);
@@ -44,6 +44,8 @@ public class TouchController : Node {
                 } else {
                     GetTree().SetInputAsHandled();
                 }
+                if (touchPositions.Count == 2 && singleTouchState == TouchState.None)
+                    singleTouchState = TouchState.CameraOnly; // prevent accidental deselect
             } else {
                 if (touch.Index == singleTouch && singleTouchState != TouchState.Gui) {
                     switch (singleTouchState) {
@@ -53,6 +55,9 @@ public class TouchController : Node {
                         case TouchState.Adjust:
                             grabbedHandle.OnRelease();
                             break;
+                        case TouchState.None:
+                            EmitSignal(nameof(SelectClear));
+                            break;
                     }
                     GetTree().SetInputAsHandled();
                 } else if (touchPositions.Count > 1) {
@@ -61,6 +66,7 @@ public class TouchController : Node {
                 touchPositions.Remove(touch.Index);
             }
         } else if (ev is InputEventScreenDrag drag) {
+            float oldPinchWidth = (touchPositions.Count == 2) ? PinchWidth() : 1;
             touchPositions[drag.Index] = drag.Position;
             if (touchPositions.Count == 1 && drag.Index == singleTouch
                     && singleTouchState != TouchState.Gui) {
@@ -78,60 +84,86 @@ public class TouchController : Node {
                 GetTree().SetInputAsHandled();
             }
             if (touchPositions.Count == 2) {
-                // TODO camera
+                RotateRelative(drag.Relative / 2);
+                EmitSignal(nameof(CameraZoom), oldPinchWidth / PinchWidth());
             } else if (touchPositions.Count == 3) {
-                // TODO camera
+                PanRelative(drag.Relative / 3);
             }
         } else if (ev is InputEventMouseButton button && button.Pressed) {
             int index = button.ButtonIndex;
             if (index == (int)ButtonList.Middle || index == (int)ButtonList.Right) {
-                if (RayCastCursor(button.Position, out Vector3 pos, out _, out _))
-                    EmitSignal(nameof(CameraRefocus), pos.DistanceTo(nCamera.GlobalTranslation));
+                RefocusCursor(button.Position);
                 GetTree().SetInputAsHandled();
             }
         } else if (ev is InputEventMouseMotion motion) {
             if ((motion.ButtonMask & (int)ButtonList.MaskRight) != 0) {
-                var amount = motion.Relative * ROTATE_SCALE / GetViewport().Size.y;
-                EmitSignal(nameof(CameraRotate), -amount.x, -amount.y);
+                RotateRelative(motion.Relative);
             } else if ((motion.ButtonMask & (int)ButtonList.MaskMiddle) != 0) {
-                var amount = motion.Relative / GetViewport().Size.y;
-                EmitSignal(nameof(CameraPan), (nCamera.GlobalTransform.basis.y * amount.y
-                    + nCamera.GlobalTransform.basis.x * -amount.x) * PAN_SCALE);
+                PanRelative(motion.Relative);
             }
         }
     }
 
     public override void _UnhandledInput(InputEvent ev) {
-        if (ev is InputEventScreenTouch touch && touch.Pressed && touchPositions.Count == 1
-                && touch.Index == singleTouch) {
-            singleTouchState = TouchState.None; // definitely not GUI
-            if (RayCastCursor(touch.Position,
-                    out Vector3 pos, out Vector3 norm, out CollisionObject obj)) {
-                if ((obj.CollisionLayer & PhysicsLayers.CubeMask) != 0) {
-                    singleTouchState = TouchState.Select;
-                    EmitSignal(nameof(SelectStart), pos, norm);
-                } else if ((obj.CollisionLayer & (1 << PhysicsLayers.AdjustHandle)) != 0) {
-                    singleTouchState = TouchState.Adjust;
-                    grabbedHandle = (AdjustHandle)obj.GetParent();
-                    grabbedHandle.OnPress(nCamera.ProjectRayOrigin(touch.Position),
-                        nCamera.ProjectRayNormal(touch.Position));
+        if (ev is InputEventScreenTouch touch && touch.Pressed) {
+            if (touchPositions.Count == 1 && touch.Index == singleTouch) {
+                singleTouchState = TouchState.None; // definitely not GUI
+                if (RayCastCursor(touch.Position,
+                        out Vector3 pos, out Vector3 norm, out CollisionObject obj)) {
+                    if ((obj.CollisionLayer & PhysicsLayers.CubeMask) != 0) {
+                        singleTouchState = TouchState.Select;
+                        EmitSignal(nameof(SelectStart), pos, norm);
+                    } else if ((obj.CollisionLayer & (1 << PhysicsLayers.AdjustHandle)) != 0) {
+                        singleTouchState = TouchState.Adjust;
+                        grabbedHandle = (AdjustHandle)obj.GetParent();
+                        grabbedHandle.OnPress(nCamera.ProjectRayOrigin(touch.Position),
+                            nCamera.ProjectRayNormal(touch.Position));
+                    }
                 }
             }
-            if (singleTouchState == TouchState.None)
-                EmitSignal(nameof(SelectClear));
+            RefocusCursor(AverageTouchPosition());
         } else if (ev is InputEventMouseButton button && button.Pressed) {
             int index = button.ButtonIndex;
             if (index == (int)ButtonList.WheelUp || index == (int)ButtonList.WheelDown) {
-                if (RayCastCursor(button.Position, out Vector3 pos, out _, out _))
-                    EmitSignal(nameof(CameraRefocus), pos.DistanceTo(nCamera.GlobalTranslation));
+                RefocusCursor(button.Position);
                 GetTree().SetInputAsHandled();
             }
             if (index == (int)ButtonList.WheelUp) {
-                EmitSignal(nameof(CameraZoom), 1.0f / (1 + ZOOM_SCALE));
+                EmitSignal(nameof(CameraZoom), 1.0f / (1 + SCROLL_ZOOM_SCALE));
             } else if (index == (int)ButtonList.WheelDown) {
-                EmitSignal(nameof(CameraZoom), 1 + ZOOM_SCALE);
+                EmitSignal(nameof(CameraZoom), 1 + SCROLL_ZOOM_SCALE);
             }
         }
+    }
+
+    private void RefocusCursor(Vector2 cursor) {
+        if (RayCastCursor(cursor, out Vector3 pos, out _, out _))
+            EmitSignal(nameof(CameraRefocus), pos.DistanceTo(nCamera.GlobalTranslation));
+    }
+
+    private void RotateRelative(Vector2 relative) {
+        relative *= -ROTATE_SCALE;
+        EmitSignal(nameof(CameraRotate), relative.x, relative.y);
+    }
+
+    private void PanRelative(Vector2 relative) {
+        EmitSignal(nameof(CameraPan), (nCamera.GlobalTransform.basis.y * relative.y
+            + nCamera.GlobalTransform.basis.x * -relative.x) * PAN_SCALE);
+    }
+
+    private Vector2 AverageTouchPosition() {
+        var sum = Vector2.Zero;
+        foreach (var kv in touchPositions)
+            sum += kv.Value;
+        return sum / touchPositions.Count;
+    }
+
+    private float PinchWidth() {
+        var e = touchPositions.GetEnumerator();
+        e.MoveNext();
+        var pos1 = e.Current.Value;
+        e.MoveNext();
+        return e.Current.Value.DistanceTo(pos1);
     }
 
     private bool RayCastCursor(Vector2 screenPoint,
