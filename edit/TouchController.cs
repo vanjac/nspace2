@@ -125,7 +125,8 @@ public class TouchController : Node {
         if (ev is InputEventScreenTouch touch && touch.Pressed) {
             if (touchPositions.Count == 1 && touch.Index == singleTouch) {
                 singleTouchState = TouchState.None; // definitely not GUI
-                if (RayCastCursor(touch.Position, out _, out _, out CollisionObject obj)) {
+                if (RayCastCursor(touch.Position, out _, out _, out CollisionObject obj,
+                        mask: PhysicsLayers.CubeMask | (1 << PhysicsLayers.AdjustHandle))) {
                     if ((obj.CollisionLayer & PhysicsLayers.CubeMask) != 0) {
                         singleTouchState = TouchState.SelectPending;
                     } else if ((obj.CollisionLayer & (1 << PhysicsLayers.AdjustHandle)) != 0) {
@@ -183,8 +184,10 @@ public class TouchController : Node {
     }
 
     private bool RayCastCursor(Vector2 screenPoint,
-            out Vector3 point, out Vector3 normal, out CollisionObject obj) {
+            out Vector3 point, out Vector3 normal, out CollisionObject obj,
+            uint mask = PhysicsLayers.CubeMask) {
         var rayDir = nCamera.ProjectRayNormal(screenPoint);
+        nRayCast.CollisionMask = mask;
         nRayCast.GlobalTranslation = nCamera.ProjectRayOrigin(screenPoint);
         nRayCast.CastTo = rayDir * MAX_SELECT_DIST;
         nRayCast.ForceRaycastUpdate();
