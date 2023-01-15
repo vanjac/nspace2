@@ -9,7 +9,7 @@ public class TouchController : Node {
     private const float PAN_SCALE = .003f;
 
     private enum TouchState {
-        None, CameraOnly, Gui, Select, Adjust
+        None, CameraOnly, Gui, SelectPending, SelectDrag, Adjust
     }
 
     [Signal] delegate void SelectStart(Vector3 pos, Vector3 norm);
@@ -44,12 +44,20 @@ public class TouchController : Node {
                 } else {
                     GetTree().SetInputAsHandled();
                 }
-                if (touchPositions.Count == 2 && singleTouchState == TouchState.None)
+                if (touchPositions.Count == 2 && (singleTouchState == TouchState.None
+                        || singleTouchState == TouchState.SelectPending))
                     singleTouchState = TouchState.CameraOnly; // prevent accidental deselect
-            } else {
+            } else { // released
                 if (touch.Index == singleTouch && singleTouchState != TouchState.Gui) {
                     switch (singleTouchState) {
-                        case TouchState.Select:
+                        case TouchState.SelectPending:
+                            if (RayCastCursor(touch.Position,
+                                    out Vector3 pos, out Vector3 norm, out _)) {
+                                EmitSignal(nameof(SelectStart), pos, norm);
+                                EmitSignal(nameof(SelectEnd));
+                            }
+                            break;
+                        case TouchState.SelectDrag:
                             EmitSignal(nameof(SelectEnd));
                             break;
                         case TouchState.Adjust:
@@ -71,8 +79,17 @@ public class TouchController : Node {
             if (touchPositions.Count == 1 && drag.Index == singleTouch
                     && singleTouchState != TouchState.Gui) {
                 switch (singleTouchState) {
-                    case TouchState.Select:
-                        if (RayCastCursor(drag.Position, out Vector3 pos, out Vector3 norm, out _))
+                    case TouchState.SelectPending:
+                        if (RayCastCursor(drag.Position,
+                                out Vector3 pos, out Vector3 norm, out _)) {
+                            EmitSignal(nameof(SelectStart), pos, norm);
+                            singleTouchState = TouchState.SelectDrag;
+                        } else {
+                            singleTouchState = TouchState.None;
+                        }
+                        break;
+                    case TouchState.SelectDrag:
+                        if (RayCastCursor(drag.Position, out pos, out norm, out _))
                             EmitSignal(nameof(SelectDrag), pos, norm);
                         break;
                     case TouchState.Adjust:
@@ -108,11 +125,9 @@ public class TouchController : Node {
         if (ev is InputEventScreenTouch touch && touch.Pressed) {
             if (touchPositions.Count == 1 && touch.Index == singleTouch) {
                 singleTouchState = TouchState.None; // definitely not GUI
-                if (RayCastCursor(touch.Position,
-                        out Vector3 pos, out Vector3 norm, out CollisionObject obj)) {
+                if (RayCastCursor(touch.Position, out _, out _, out CollisionObject obj)) {
                     if ((obj.CollisionLayer & PhysicsLayers.CubeMask) != 0) {
-                        singleTouchState = TouchState.Select;
-                        EmitSignal(nameof(SelectStart), pos, norm);
+                        singleTouchState = TouchState.SelectPending;
                     } else if ((obj.CollisionLayer & (1 << PhysicsLayers.AdjustHandle)) != 0) {
                         singleTouchState = TouchState.Adjust;
                         grabbedHandle = (AdjustHandle)obj.GetParent();
