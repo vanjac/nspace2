@@ -20,9 +20,8 @@ public class AdjustHandle : Spatial {
     }
 
     public void Update() {
-        Vector3 globalHandlePos = GlobalTranslation
-            + (1 + dist) * GlobalTransform.basis.z.Normalized();
-        Scale = GDUtil.DistanceToCamera(camera, globalHandlePos) * Vector3.One * SCALE;
+        Vector3 globalOrigin = GlobalTranslation + dist * GlobalTransform.basis.z.Normalized();
+        Scale = GDUtil.DistanceToCamera(camera, globalOrigin) * Vector3.One * SCALE;
 
         float scaledDist = 1 + dist / GlobalTransform.basis.z.Length();
         nLine.Scale = new Vector3(1, 1, scaledDist);
