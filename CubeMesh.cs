@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 
 public class CubeMesh : Spatial {
+    [NodeRef("Grid")] private MeshInstance nGrid;
     private ArrayMesh mesh = new ArrayMesh();
     private ConcavePolygonShape singleShape = new ConcavePolygonShape();
     private ConcavePolygonShape doubleShape = new ConcavePolygonShape();
@@ -18,9 +19,21 @@ public class CubeMesh : Spatial {
     }
 
     public override void _Ready() {
+        NodeRefAttribute.GetAllNodes(this);
         GetNode<MeshInstance>("MeshInstance").Mesh = mesh;
+        nGrid.Mesh = mesh;
         GetNode<CollisionShape>("SingleSided/CollisionShape").Shape = singleShape;
         GetNode<CollisionShape>("DoubleSided/CollisionShape").Shape = doubleShape;
+    }
+
+    public bool GridVisible {
+        get => nGrid.Visible;
+        set => nGrid.Visible = value;
+    }
+
+    public float GridSize {
+        get => 1 / ((SpatialMaterial)nGrid.MaterialOverride).Uv1Scale.x;
+        set => ((SpatialMaterial)nGrid.MaterialOverride).Uv1Scale = Vector3.One / value;
     }
 
     public CubeStats UpdateMesh(Cube root, Vector3 pos, float size, Guid? voidVolume,
