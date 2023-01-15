@@ -152,8 +152,9 @@ public class TouchController : Node {
     }
 
     private void RefocusCursor(Vector2 cursor) {
-        if (RayCastCursor(cursor, out Vector3 pos, out _, out _))
-            EmitSignal(nameof(CameraRefocus), pos.DistanceTo(nCamera.GlobalTranslation));
+        if (RayCastCursor(cursor, out Vector3 pos, out _, out _)) {
+            EmitSignal(nameof(CameraRefocus), GDUtil.DistanceToCamera(nCamera, pos));
+        }
     }
 
     private void RotateRelative(Vector2 relative) {

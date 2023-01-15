@@ -18,3 +18,9 @@ public class NodeRefAttribute : Attribute {
         }
     }
 }
+
+public static class GDUtil {
+    public static float DistanceToCamera(Camera camera, Vector3 point) {
+        return (point - camera.GlobalTranslation).Project(camera.GlobalTransform.basis.z).Length();
+    }
+}

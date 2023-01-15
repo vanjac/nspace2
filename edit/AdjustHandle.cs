@@ -21,10 +21,10 @@ public class AdjustHandle : Spatial {
 
     public void Update() {
         Vector3 globalHandlePos = GlobalTranslation
-            + (1 + dist) * GlobalTransform.basis[2].Normalized();
-        Scale = camera.GlobalTranslation.DistanceTo(globalHandlePos) * Vector3.One * SCALE;
+            + (1 + dist) * GlobalTransform.basis.z.Normalized();
+        Scale = GDUtil.DistanceToCamera(camera, globalHandlePos) * Vector3.One * SCALE;
 
-        float scaledDist = 1 + dist / GlobalTransform.basis[2].Length();
+        float scaledDist = 1 + dist / GlobalTransform.basis.z.Length();
         nLine.Scale = new Vector3(1, 1, scaledDist);
         nHandle.Translation = new Vector3(0, 0, scaledDist);
     }
@@ -33,7 +33,7 @@ public class AdjustHandle : Spatial {
         // https://math.stackexchange.com/a/3436386
         rayDir = rayDir.Normalized();
         Vector3 myOrigin = GlobalTranslation;
-        Vector3 myDir = GlobalTransform.basis[2].Normalized();
+        Vector3 myDir = GlobalTransform.basis.z.Normalized();
         Vector3 cDir = myDir.Cross(rayDir).Normalized();
         Vector3 oDiff = myOrigin - rayOrigin;
         Vector3 projection = (oDiff).Dot(rayDir) * rayDir;
