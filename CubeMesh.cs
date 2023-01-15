@@ -127,8 +127,9 @@ public class CubeMesh : Spatial {
         }
         var uvs = new Vector2[4];
         for (int i = 0; i < 4; i++) {
-            Vector3 cycleVert = CubeUtil.CycleVector(verts[i], 5 - axis);
-            uvs[i] = new Vector2(cycleVert.x, cycleVert.y);
+            Vector3 cycled = CubeUtil.CycleVector(verts[i], 5 - axis);
+            (float u, float v) = (axis == 0) ? (-cycled.y, cycled.x) : (cycled.x, cycled.y);
+            uvs[i] = new Vector2(dir ? u : -u, -v);
         }
         st.AddTriangleFan(verts, uvs);
         tris.AddRange(new Vector3[] { verts[0], verts[1], verts[2], verts[0], verts[2], verts[3] });
