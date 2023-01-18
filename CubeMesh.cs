@@ -11,7 +11,6 @@ public class CubeMesh : Spatial {
 
     private struct MeshData {
         public Dictionary<Guid, SurfaceTool> surfs;
-        public SurfaceTool edgeSurf;
         public List<Vector3> singleTris, doubleTris;
     }
 
@@ -46,18 +45,16 @@ public class CubeMesh : Spatial {
         edgeMesh.ClearSurfaces();
         var data = new MeshData();
         data.surfs = new Dictionary<Guid, SurfaceTool>();
-        data.edgeSurf = new SurfaceTool();
-        data.edgeSurf.Begin(Mesh.PrimitiveType.Points);
         data.singleTris = new List<Vector3>();
         data.doubleTris = new List<Vector3>();
+        var edgeSurf = new SurfaceTool();
+        edgeSurf.Begin(Mesh.PrimitiveType.Points);
         var stats = new CubeStats();
 
-        BuildCube(data, root, pos, size, stats);
         var vLeaf = new Cube.Leaf(voidVolume).Immut();
-        for (int axis = 0; axis < 3; axis++) {
-            BuildBoundary(data, vLeaf, root, pos, size, axis, stats);
-        }
-        BuildVertices(data, (vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, root), pos, size);
+        Arr8<Cube> rootCubes = (vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, root);
+        BuildCubes(data, rootCubes, pos - Vector3.One * size, size, stats);
+        BuildVertices(edgeSurf, rootCubes, pos, size);
         GD.Print($"Generating mesh took {Time.GetTicksMsec() - startTick}ms");
 
         startTick = Time.GetTicksMsec();
@@ -70,34 +67,39 @@ public class CubeMesh : Spatial {
             if (materials.TryGetValue(item.Key, out Material mat))
                 mesh.SurfaceSetMaterial(surfI++, mat);
         }
-        data.edgeSurf.Index();
-        data.edgeSurf.Commit(edgeMesh);
+        edgeSurf.Index();
+        edgeSurf.Commit(edgeMesh);
         singleShape.Data = data.singleTris.ToArray();
         doubleShape.Data = data.doubleTris.ToArray();
         GD.Print($"Updating mesh took {Time.GetTicksMsec() - startTick}ms");
         return stats;
     }
 
-    // TODO would the recursive structure in SimplifyCube work better here?
-    private static void BuildCube(MeshData data, Cube cube, Vector3 pos, float size,
+    /// <summary>
+    /// Add faces in the given set of cubes to the meshes recursively.
+    /// </summary>
+    /// <param name="data">Contains the meshes to be modified</param>
+    /// <param name="cubes">8 adjacent cubes in the same order as Cube.Branch.</param>
+    /// <param name="pos">Origin position of the 0th cube.</param>
+    /// <param name="size">Size of one of the cubes in the array.</param>
+    /// <param name="stats">Updated with mesh generation stats.</param>
+    private static void BuildCubes(MeshData data, Arr8<Cube> cubes, Vector3 pos, float size,
             CubeStats stats) {
-        if (cube is Cube.BranchImmut branch) {
-            stats.branches++;
+        stats.branches++;
 
-            for (int axis = 0; axis < 3; axis++) {
-                for (int i = 0; i < 4; i++) {
-                    int minI = CubeUtil.CycleIndex(i, axis + 1);
-                    int maxI = minI | (1 << axis);
-                    Vector3 boundPos = pos + CubeUtil.IndexVector(maxI) * (size / 2);
-                    BuildBoundary(data, branch.child(minI), branch.child(maxI),
-                        boundPos, size / 2, axis, stats);
-                }
+        for (int axis = 0; axis < 3; axis++) {
+            for (int i = 0; i < 4; i++) {
+                int minI = CubeUtil.CycleIndex(i, axis + 1);
+                int maxI = minI | (1 << axis);
+                Vector3 boundPos = pos + CubeUtil.IndexVector(maxI) * size;
+                BuildBoundary(data, cubes[minI], cubes[maxI], boundPos, size, axis, stats);
             }
+        }
 
-            for (int i = 0; i < 8; i++) {
-                var childPos = pos + CubeUtil.IndexVector(i) * (size / 2);
-                BuildCube(data, branch.child(i), childPos, size / 2, stats);
-            }
+        for (int i = 0; i < 8; i++) {
+            var childPos = pos + CubeUtil.IndexVector(i) * size;
+            if (cubes[i] is Cube.BranchImmut branch)
+                BuildCubes(data, branch.Val.children, childPos, size / 2, stats);
         }
     }
 
@@ -143,9 +145,9 @@ public class CubeMesh : Spatial {
     /// </param>
     /// <param name="pos">Origin position of the 7th cube.</param>
     /// <param name="size">Size of one of the cubes in the array.</param>
-    private static void BuildVertices(MeshData data, Arr8<Cube> cubes, Vector3 pos, float size) {
+    private static void BuildVertices(SurfaceTool surf, Arr8<Cube> cubes, Vector3 pos, float size) {
         if (AllLeaves(cubes, out Arr8<Cube.LeafImmut> leaves) && HasVertex(leaves))
-            data.edgeSurf.AddVertex(pos);
+            surf.AddVertex(pos);
 
         for (int i = 0; i < 8; i++) {
             Arr8<Cube> context = (null, null, null, null, null, null, null, null);
@@ -161,7 +163,7 @@ public class CubeMesh : Spatial {
             }
             if (anyBranch) {
                 var childPos = pos + CubeUtil.IndexVector(i) * (size / 2);
-                BuildVertices(data, context, childPos, size / 2);
+                BuildVertices(surf, context, childPos, size / 2);
             }
         }
     }
