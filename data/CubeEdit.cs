@@ -506,11 +506,11 @@ public static class CubeEdit {
     /// <summary>
     /// Remove as many branch cubes as possible from the world without changing the 3D structure.
     /// </summary>
-    /// <param name="world">The world to be optimized.</param>
-    /// <returns>Equivalent optimized version of the world.</returns>
-    public static CubeWorld Optimize(CubeWorld world, out CubePos newRootPos, out int shrinkDepth) {
+    /// <param name="world">The world to be simplified.</param>
+    /// <returns>Equivalent simplified version of the world.</returns>
+    public static CubeWorld Simplify(CubeWorld world, out CubePos newRootPos, out int shrinkDepth) {
         var voidLeaf = new Cube.Leaf(world.voidVolume).Immut();
-        world.root = OptimizeCube(world.root, (voidLeaf, voidLeaf, voidLeaf));
+        world.root = SimplifyCube(world.root, (voidLeaf, voidLeaf, voidLeaf));
         world = ShrinkWorld(world, out newRootPos, out shrinkDepth);
         return world;
     }
@@ -518,12 +518,12 @@ public static class CubeEdit {
     /// <summary>
     /// From the given cube, build an equivalent cube containing as few branches as possible.
     /// </summary>
-    /// <param name="cube">The cube to be optimized.</param>
+    /// <param name="cube">The cube to be simplified.</param>
     /// <param name="minCubes">
     /// Cubes adjacent to the given cube along each axis, on the negative side.
     /// </param>
-    /// <returns>Equivalent optimized cube.</returns>
-    private static Cube OptimizeCube(Cube cube, Arr3<Cube> minCubes) {
+    /// <returns>Equivalent simplified cube.</returns>
+    private static Cube SimplifyCube(Cube cube, Arr3<Cube> minCubes) {
         if (cube is Cube.BranchImmut branch) {
             var newBranch = branch.Val;
             bool modified = false;
@@ -531,7 +531,7 @@ public static class CubeEdit {
                 Arr3<Cube> childMinCubes = new Arr3<Cube>();
                 for (int axis = 0; axis < 3; axis++) {
                     if ((i & (1 << axis)) != 0) {
-                        // use new child (always lower index, so already optimized!)
+                        // use new child (always lower index, so already simplified!)
                         childMinCubes[axis] = newBranch.children[i & ~(1 << axis)];
                     } else if (minCubes[axis] is Cube.BranchImmut branchMin) {
                         childMinCubes[axis] = branchMin.child(i | (1 << axis));
@@ -540,10 +540,10 @@ public static class CubeEdit {
                     }
                 }
                 newBranch.children[i] = Util.AssignChanged(newBranch.children[i],
-                    OptimizeCube(branch.child(i), childMinCubes), ref modified);
+                    SimplifyCube(branch.child(i), childMinCubes), ref modified);
             }
-            Cube optimized = OptimizeShallow(newBranch, minCubes);
-            if (optimized != null) return optimized;
+            Cube simplified = SimplifyShallow(newBranch, minCubes);
+            if (simplified != null) return simplified;
             if (!modified) return cube; // avoid allocation
             return newBranch.Immut();
         } else {
@@ -559,13 +559,13 @@ public static class CubeEdit {
     /// Cubes adjacent to the given branch along each axis, on the negative side.
     /// </param>
     /// <returns>An equivalent Cube.LeafImmut, or null if the branch can't be reduced.</returns>
-    private static Cube OptimizeShallow(Cube.Branch branch, Arr3<Cube> minCubes) {
+    private static Cube SimplifyShallow(Cube.Branch branch, Arr3<Cube> minCubes) {
         if (!(branch.children[0] is Cube.LeafImmut leaf0))
             return null;
-        Cube.Leaf optimized = leaf0.Val;
+        Cube.Leaf simplified = leaf0.Val;
         for (int i = 1; i < 8; i++) { // skip 0!
             if (!(branch.children[i] is Cube.LeafImmut childLeaf)
-                    || childLeaf.Val.volume != optimized.volume)
+                    || childLeaf.Val.volume != simplified.volume)
                 return null;
         }
         bool modified = false;
@@ -577,16 +577,16 @@ public static class CubeEdit {
                     as Cube.LeafImmut;
                 if (minLeaf != null && childLeaf.Val.volume == minLeaf.Val.volume)
                     continue; // face will not be used since there's no boundary
-                if (!childLeaf.face(axis).Val.Equals(optimized.faces[axis].Val)) {
+                if (!childLeaf.face(axis).Val.Equals(simplified.faces[axis].Val)) {
                     if (hasBoundary)
                         return null; // boundaries are different, can't merge
-                    optimized.faces[axis] = childLeaf.face(axis);
+                    simplified.faces[axis] = childLeaf.face(axis);
                     modified = true;
                 }
                 hasBoundary = true;
             }
         }
         if (!modified) return leaf0; // avoid allocation
-        return optimized.Immut();
+        return simplified.Immut();
     }
 }

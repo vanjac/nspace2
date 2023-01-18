@@ -78,7 +78,7 @@ public class CubeMesh : Spatial {
         return stats;
     }
 
-    // TODO would the recursive structure in OptimizeCube work better here?
+    // TODO would the recursive structure in SimplifyCube work better here?
     private static void BuildCube(MeshData data, Cube cube, Vector3 pos, float size,
             CubeStats stats) {
         if (cube is Cube.BranchImmut branch) {
@@ -143,7 +143,7 @@ public class CubeMesh : Spatial {
     /// </param>
     /// <param name="pos">Origin position of the 7th cube.</param>
     /// <param name="size">Size of one of the cubes in the array.</param>
-    private void BuildVertices(MeshData data, Arr8<Cube> cubes, Vector3 pos, float size) {
+    private static void BuildVertices(MeshData data, Arr8<Cube> cubes, Vector3 pos, float size) {
         if (AllLeaves(cubes, out Arr8<Cube.LeafImmut> leaves) && HasVertex(leaves))
             data.edgeSurf.AddVertex(pos);
 
