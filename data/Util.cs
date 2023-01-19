@@ -75,6 +75,43 @@ public struct Arr3<T> {
 }
 
 /// <summary>
+/// A value-type array of 4 items.
+/// </summary>
+/// <typeparam name="T">Type of item contained in the array</typeparam>
+public struct Arr4<T> {
+    [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.RootHidden)]
+    public ValueTuple<T, T, T, T> Items;
+
+    public Arr4(T item1, T item2, T item3, T item4) {
+        Items = (item1, item2, item3, item4);
+    }
+
+    public static implicit operator Arr4<T>(ValueTuple<T, T, T, T> tuple)
+        => new Arr4<T> { Items = tuple };
+
+    public T this[int i] {
+        readonly get {
+            switch (i) {
+                case 0: return Items.Item1;
+                case 1: return Items.Item2;
+                case 2: return Items.Item3;
+                case 3: return Items.Item4;
+                default: throw new IndexOutOfRangeException();
+            }
+        }
+        set {
+            switch (i) {
+                case 0: Items.Item1 = value; break;
+                case 1: Items.Item2 = value; break;
+                case 2: Items.Item3 = value; break;
+                case 3: Items.Item4 = value; break;
+                default: throw new IndexOutOfRangeException();
+            }
+        }
+    }
+}
+
+/// <summary>
 /// A value-type array of 8 items.
 /// </summary>
 /// <typeparam name="T">Type of item contained in the array</typeparam>

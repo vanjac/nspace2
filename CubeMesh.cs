@@ -16,16 +16,7 @@ public class CubeMesh : Spatial {
 
     public class CubeStats {
         // leaves = branches * 7 + 1
-        public int branches, boundQuads;
-    }
-
-    public override void _Ready() {
-        NodeRefAttribute.GetAllNodes(this);
-        GetNode<MeshInstance>("MeshInstance").Mesh = mesh;
-        nGrid.Mesh = mesh;
-        GetNode<MeshInstance>("Edges").Mesh = edgeMesh;
-        GetNode<CollisionShape>("SingleSided/CollisionShape").Shape = singleShape;
-        GetNode<CollisionShape>("DoubleSided/CollisionShape").Shape = doubleShape;
+        public int branches, quads, edges, vertices;
     }
 
     public bool GridVisible {
@@ -38,45 +29,65 @@ public class CubeMesh : Spatial {
         set => ((SpatialMaterial)nGrid.MaterialOverride).Uv1Scale = Vector3.One / value;
     }
 
+    public bool FacesVisible { get; set; } = true;
+    public bool EdgesVisible { get; set; }
+
+    public override void _Ready() {
+        NodeRefAttribute.GetAllNodes(this);
+        GetNode<MeshInstance>("MeshInstance").Mesh = mesh;
+        nGrid.Mesh = mesh;
+        GetNode<MeshInstance>("Edges").Mesh = edgeMesh;
+        GetNode<CollisionShape>("SingleSided/CollisionShape").Shape = singleShape;
+        GetNode<CollisionShape>("DoubleSided/CollisionShape").Shape = doubleShape;
+    }
+
     public CubeStats UpdateMesh(Cube root, Vector3 pos, float size, Guid voidVolume,
             Dictionary<Guid, Material> materials) {
-        ulong startTick = Time.GetTicksMsec();
         mesh.ClearSurfaces();
         edgeMesh.ClearSurfaces();
+        var stats = new CubeStats();
+        var vLeaf = new Cube.Leaf(voidVolume).Immut();
+
         var data = new MeshData();
         data.surfs = new Dictionary<Guid, SurfaceTool>();
         data.singleTris = new List<Vector3>();
         data.doubleTris = new List<Vector3>();
-        var edgeSurf = new SurfaceTool();
-        edgeSurf.Begin(Mesh.PrimitiveType.Lines);
-        var vertSurf = new SurfaceTool();
-        vertSurf.Begin(Mesh.PrimitiveType.Points);
-        var stats = new CubeStats();
 
-        var vLeaf = new Cube.Leaf(voidVolume).Immut();
-        for (int axis = 0; axis < 3; axis++) {
-            stats.boundQuads += BuildFaces(data, vLeaf, root, pos, size, axis);
-            BuildEdges(edgeSurf, (vLeaf, vLeaf, vLeaf, root), pos, size, axis);
-        }
-        BuildVertices(vertSurf, (vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, root), pos, size);
+        ulong startTick = Time.GetTicksMsec();
+        for (int axis = 0; axis < 3; axis++)
+            stats.quads += BuildFaces(data, vLeaf, root, pos, size, axis);
         GD.Print($"Generating mesh took {Time.GetTicksMsec() - startTick}ms");
 
         startTick = Time.GetTicksMsec();
-        int surfI = 0;
-        foreach (var item in data.surfs) {
-            item.Value.GenerateTangents(); // TODO necessary?
-            item.Value.Index();
-            // TODO: this is slow in Godot 3! https://github.com/godotengine/godot/issues/56524
-            item.Value.Commit(mesh);
-            if (materials.TryGetValue(item.Key, out Material mat))
-                mesh.SurfaceSetMaterial(surfI++, mat);
+        if (FacesVisible) {
+            int surfI = 0;
+            foreach (var item in data.surfs) {
+                item.Value.GenerateTangents(); // TODO necessary?
+                item.Value.Index();
+                // TODO: this is slow in Godot 3! https://github.com/godotengine/godot/issues/56524
+                item.Value.Commit(mesh);
+                if (materials.TryGetValue(item.Key, out Material mat))
+                    mesh.SurfaceSetMaterial(surfI++, mat);
+            }
         }
-        edgeSurf.Index();
-        edgeSurf.Commit(edgeMesh);
-        vertSurf.Commit(edgeMesh);
         singleShape.Data = data.singleTris.ToArray();
         doubleShape.Data = data.doubleTris.ToArray();
         GD.Print($"Updating mesh took {Time.GetTicksMsec() - startTick}ms");
+
+        if (EdgesVisible) {
+            var edgeSurf = new SurfaceTool();
+            edgeSurf.Begin(Mesh.PrimitiveType.Lines);
+            var vertSurf = new SurfaceTool();
+            vertSurf.Begin(Mesh.PrimitiveType.Points);
+            for (int axis = 0; axis < 3; axis++)
+                stats.edges += BuildEdges(edgeSurf, (vLeaf, vLeaf, vLeaf, root), pos, size, axis);
+                stats.vertices = BuildVertices(vertSurf,
+                    (vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, root), pos, size);
+            edgeSurf.Index();
+            edgeSurf.Commit(edgeMesh);
+            vertSurf.Commit(edgeMesh);
+        }
+
         return stats;
     }
 
@@ -121,14 +132,17 @@ public class CubeMesh : Spatial {
         return numQuads;
     }
 
-    private static void BuildEdges(SurfaceTool surf, Arr4<Cube> cubes,
+    private static int BuildEdges(SurfaceTool surf, Arr4<Cube> cubes,
             Vector3 pos, float size, int axis) {
         if (AllLeaves(cubes, out Arr4<Cube.LeafImmut> leaves)) {
             if (HasEdge(leaves)) {
                 surf.AddVertex(pos);
                 surf.AddVertex(pos + CubeUtil.IndexVector(1 << axis) * size);
+                return 1;
             }
+            return 0;
         } else {
+            int numEdges = 0;
             var aBit = 1 << axis;
             for (int i = 0; i < 8; i++) {
                 int childI = CubeUtil.CycleIndex(i, axis + 1); // child of cube[7]
@@ -146,9 +160,10 @@ public class CubeMesh : Spatial {
                 }
                 if (anyBranch) {
                     var childPos = pos + CubeUtil.IndexVector(childI) * (size / 2);
-                    BuildEdges(surf, adjacent, childPos, size / 2, axis);
+                    numEdges += BuildEdges(surf, adjacent, childPos, size / 2, axis);
                 }
             }
+            return numEdges;
         }
     }
 
@@ -162,11 +177,15 @@ public class CubeMesh : Spatial {
     /// </param>
     /// <param name="pos">Origin position of the 7th cube.</param>
     /// <param name="size">Size of one of the cubes in the array.</param>
-    private static void BuildVertices(SurfaceTool surf, Arr8<Cube> cubes, Vector3 pos, float size) {
+    private static int BuildVertices(SurfaceTool surf, Arr8<Cube> cubes, Vector3 pos, float size) {
         if (AllLeaves(cubes, out Arr8<Cube.LeafImmut> leaves)) {
-            if (HasVertex(leaves))
+            if (HasVertex(leaves)) {
                 surf.AddVertex(pos);
+                return 1;
+            }
+            return 0;
         } else {
+            int numVerts = 0;
             for (int i = 0; i < 8; i++) { // index into cubes[7]
                 var adjacent = new Arr8<Cube>();
                 bool anyBranch = false;
@@ -181,9 +200,10 @@ public class CubeMesh : Spatial {
                 }
                 if (anyBranch) {
                     var childPos = pos + CubeUtil.IndexVector(i) * (size / 2);
-                    BuildVertices(surf, adjacent, childPos, size / 2);
+                    numVerts += BuildVertices(surf, adjacent, childPos, size / 2);
                 }
             }
+            return numVerts;
         }
     }
 
