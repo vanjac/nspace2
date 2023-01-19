@@ -52,8 +52,9 @@ public class CubeMesh : Spatial {
         var stats = new CubeStats();
 
         var vLeaf = new Cube.Leaf(voidVolume).Immut();
+        for (int axis = 0; axis < 3; axis++)
+            BuildFaces(data, vLeaf, root, pos, size, axis, stats);
         Arr8<Cube> rootCubes = (vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, root);
-        BuildCubes(data, rootCubes, pos - Vector3.One * size, size, stats);
         BuildVertices(edgeSurf, rootCubes, pos, size);
         GD.Print($"Generating mesh took {Time.GetTicksMsec() - startTick}ms");
 
@@ -75,35 +76,7 @@ public class CubeMesh : Spatial {
         return stats;
     }
 
-    /// <summary>
-    /// Add faces in the given set of cubes to the meshes recursively.
-    /// </summary>
-    /// <param name="data">Contains the meshes to be modified</param>
-    /// <param name="cubes">8 adjacent cubes in the same order as Cube.Branch.</param>
-    /// <param name="pos">Origin position of the 0th cube.</param>
-    /// <param name="size">Size of one of the cubes in the array.</param>
-    /// <param name="stats">Updated with mesh generation stats.</param>
-    private static void BuildCubes(MeshData data, Arr8<Cube> cubes, Vector3 pos, float size,
-            CubeStats stats) {
-        stats.branches++;
-
-        for (int axis = 0; axis < 3; axis++) {
-            for (int i = 0; i < 4; i++) {
-                int minI = CubeUtil.CycleIndex(i, axis + 1);
-                int maxI = minI | (1 << axis);
-                Vector3 boundPos = pos + CubeUtil.IndexVector(maxI) * size;
-                BuildBoundary(data, cubes[minI], cubes[maxI], boundPos, size, axis, stats);
-            }
-        }
-
-        for (int i = 0; i < 8; i++) {
-            var childPos = pos + CubeUtil.IndexVector(i) * size;
-            if (cubes[i] is Cube.BranchImmut branch)
-                BuildCubes(data, branch.Val.children, childPos, size / 2, stats);
-        }
-    }
-
-    private static void BuildBoundary(MeshData data, Cube cubeMin, Cube cubeMax,
+    private static void BuildFaces(MeshData data, Cube cubeMin, Cube cubeMax,
             Vector3 pos, float size, int axis, CubeStats stats) {
         if (cubeMin is Cube.LeafImmut leafMin && cubeMax is Cube.LeafImmut leafMax) {
             if (leafMin.Val.volume == leafMax.Val.volume)
@@ -122,15 +95,19 @@ public class CubeMesh : Spatial {
             if (leafMin.Val.volume != Volume.SOLID)
                 AddQuad(st, tris, pos, size, axis, false, stats);
         } else {
+            var axisVec = CubeUtil.IndexVector(1 << axis) * (size / 2);
             for (int i = 0; i < 4; i++) {
-                int maxI = CubeUtil.CycleIndex(i, axis + 1);
+                int childI = CubeUtil.CycleIndex(i, axis + 1);
+                var childPos = pos + CubeUtil.IndexVector(childI) * (size / 2);
                 Cube childMin = cubeMin, childMax = cubeMax;
                 if (cubeMin is Cube.BranchImmut branchMin)
-                    childMin = branchMin.child(maxI | (1 << axis));
-                if (cubeMax is Cube.BranchImmut branchMax)
-                    childMax = branchMax.child(maxI);
-                var childPos = pos + CubeUtil.IndexVector(maxI) * (size / 2);
-                BuildBoundary(data, childMin, childMax, childPos, size / 2, axis, stats);
+                    childMin = branchMin.child(childI | (1 << axis));
+                if (cubeMax is Cube.BranchImmut branchMax) {
+                    childMax = branchMax.child(childI);
+                    BuildFaces(data, childMax, branchMax.child(childI | (1 << axis)),
+                        childPos + axisVec, size / 2, axis, stats);
+                }
+                BuildFaces(data, childMin, childMax, childPos, size / 2, axis, stats);
             }
         }
     }
@@ -146,24 +123,26 @@ public class CubeMesh : Spatial {
     /// <param name="pos">Origin position of the 7th cube.</param>
     /// <param name="size">Size of one of the cubes in the array.</param>
     private static void BuildVertices(SurfaceTool surf, Arr8<Cube> cubes, Vector3 pos, float size) {
-        if (AllLeaves(cubes, out Arr8<Cube.LeafImmut> leaves) && HasVertex(leaves))
-            surf.AddVertex(pos);
-
-        for (int i = 0; i < 8; i++) {
-            Arr8<Cube> context = (null, null, null, null, null, null, null, null);
-            bool anyBranch = false;
-            for (int j = 0; j < 8; j++) {
-                Cube cube = cubes[i | j];
-                if (cube is Cube.BranchImmut branch) {
-                    anyBranch = true;
-                    context[j] = branch.child(i ^ j ^ 7);
-                } else {
-                    context[j] = cube;
+        if (AllLeaves(cubes, out Arr8<Cube.LeafImmut> leaves)) {
+            if (HasVertex(leaves))
+                surf.AddVertex(pos);
+        } else {
+            for (int i = 0; i < 8; i++) {
+                Arr8<Cube> context = (null, null, null, null, null, null, null, null);
+                bool anyBranch = false;
+                for (int j = 0; j < 8; j++) {
+                    Cube cube = cubes[i | j];
+                    if (cube is Cube.BranchImmut branch) {
+                        anyBranch = true;
+                        context[j] = branch.child(i ^ j ^ 7);
+                    } else {
+                        context[j] = cube;
+                    }
                 }
-            }
-            if (anyBranch) {
-                var childPos = pos + CubeUtil.IndexVector(i) * (size / 2);
-                BuildVertices(surf, context, childPos, size / 2);
+                if (anyBranch) {
+                    var childPos = pos + CubeUtil.IndexVector(i) * (size / 2);
+                    BuildVertices(surf, context, childPos, size / 2);
+                }
             }
         }
     }
