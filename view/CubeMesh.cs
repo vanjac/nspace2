@@ -31,6 +31,7 @@ public class CubeMesh : Spatial {
 
     public bool FacesVisible { get; set; } = true;
     public bool EdgesVisible { get; set; }
+    public bool DebugLeavesVisible { get; set; }
 
     public override void _Ready() {
         NodeRefAttribute.GetAllNodes(this);
@@ -77,15 +78,23 @@ public class CubeMesh : Spatial {
         if (EdgesVisible) {
             var edgeSurf = new SurfaceTool();
             edgeSurf.Begin(Mesh.PrimitiveType.Lines);
-            var vertSurf = new SurfaceTool();
-            vertSurf.Begin(Mesh.PrimitiveType.Points);
             for (int axis = 0; axis < 3; axis++)
                 stats.edges += BuildEdges(edgeSurf, (vLeaf, vLeaf, vLeaf, root), pos, size, axis);
-                stats.vertices = BuildVertices(vertSurf,
-                    (vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, root), pos, size);
+            var vertSurf = new SurfaceTool();
+            vertSurf.Begin(Mesh.PrimitiveType.Points);
+            stats.vertices = BuildVertices(vertSurf,
+                (vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, root), pos, size);
             edgeSurf.Index();
             edgeSurf.Commit(edgeMesh);
             vertSurf.Commit(edgeMesh);
+        }
+
+        if (DebugLeavesVisible) {
+            var leafSurf = new SurfaceTool();
+            leafSurf.Begin(Mesh.PrimitiveType.Lines);
+            stats.branches = BuildDebugLeaves(leafSurf, root, pos, size);
+            leafSurf.Index();
+            leafSurf.Commit(edgeMesh);
         }
 
         return stats;
@@ -204,6 +213,28 @@ public class CubeMesh : Spatial {
                 }
             }
             return numVerts;
+        }
+    }
+
+    private static int BuildDebugLeaves(SurfaceTool surf, Cube cube, Vector3 pos, float size) {
+        if (cube is Cube.LeafImmut leaf) {
+            for (int axis = 0; axis < 3; axis++) {
+                var axisVec = CubeUtil.IndexVector(1 << axis) * size;
+                for (int i = 0; i < 4; i++) {
+                    var v = pos + CubeUtil.IndexVector(CubeUtil.CycleIndex(i, axis + 1)) * size;
+                    surf.AddVertex(v);
+                    surf.AddVertex(v + axisVec);
+                }
+            }
+            return 0;
+        } else {
+            int numBranches = 1;
+            var branch = cube as Cube.BranchImmut;
+            for (int i = 0; i < 8; i++) {
+                var childPos = pos + CubeUtil.IndexVector(i) * (size / 2);
+                numBranches += BuildDebugLeaves(surf, branch.child(i), childPos, size / 2);
+            }
+            return numBranches;
         }
     }
 
