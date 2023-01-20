@@ -570,12 +570,11 @@ public static class CubeEdit {
         }
         bool modified = false;
         for (int axis = 0; axis < 3; axis++) {
-            Cube.LeafImmut minLeaf = minCubes[axis] as Cube.LeafImmut;
             bool hasBoundary = false;
             for (int i = 0; i < 4; i++) {
                 var childLeaf = branch.children[CubeUtil.CycleIndex(i, axis + 1)]
                     as Cube.LeafImmut;
-                if (minLeaf != null && childLeaf.Val.volume == minLeaf.Val.volume)
+                if (MaxSideVolumeEqual(minCubes[axis], axis, childLeaf.Val.volume))
                     continue; // face will not be used since there's no boundary
                 if (!childLeaf.face(axis).Val.Equals(simplified.faces[axis].Val)) {
                     if (hasBoundary)
