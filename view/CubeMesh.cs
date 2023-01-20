@@ -29,7 +29,6 @@ public class CubeMesh : Spatial {
     public bool FacesVisible { get; set; } = true;
     public bool EdgeShadowsVisible { get; set; } = true;
     public float EdgeShadowSize { get; set; } = 0.5f;
-    public Color EdgeShadowColor { get; set; } = new Color(.7f, .7f, .7f);
     public bool EdgesVisible { get; set; }
     public bool DebugLeavesVisible { get; set; }
 
@@ -85,8 +84,8 @@ public class CubeMesh : Spatial {
             shadowSurf.Begin(Mesh.PrimitiveType.Triangles);
             for (int axis = 0; axis < 3; axis++) {
                 ForEachEdge((vLeaf, vLeaf, vLeaf, root), pos, size, axis, (leaves, pos, size) => {
-                    stats.quads += BuildShadowEdge(leaves, pos, size, axis, shadowSurf,
-                        EdgeShadowSize, EdgeShadowColor);
+                    stats.quads += BuildShadowEdge(leaves, pos, size, axis,
+                        shadowSurf, EdgeShadowSize);
                 });
             }
             shadowSurf.Index();
@@ -194,8 +193,13 @@ public class CubeMesh : Spatial {
         tris.AddRange(new Vector3[] { pos, pos + vT, pos + vS + vT, pos, pos + vS + vT, pos + vS });
     }
 
+    private static readonly Vector2[] EDGE_SHADOW_UVS1 =
+        new Vector2[] { Vector2.Zero, Vector2.Zero, Vector2.Right, Vector2.Right };
+    private static readonly Vector2[] EDGE_SHADOW_UVS2 =
+        new Vector2[] { Vector2.Zero, Vector2.Right, Vector2.Right, Vector2.Zero };
+
     private static int BuildShadowEdge(Arr4<Cube.LeafImmut> leaves,
-            Vector3 pos, float size, int axis, SurfaceTool surf, float width, Color color) {
+            Vector3 pos, float size, int axis, SurfaceTool surf, float width) {
         int numQuads = 0;
         for (int i = 0; i < 4; i++) {
             int adj1 = i ^ 1;
@@ -209,12 +213,13 @@ public class CubeMesh : Spatial {
                 var vT = CubeUtil.IndexVector(CubeUtil.CycleIndex(1, axis + 2)) * width;
                 if ((i & 2) == 0) vT = -vT;
                 if (((i & 1) ^ ((i >> 1) & 1)) == 0) (vS, vT) = (vT, vS); // TODO jank
+                Vector2 dark = new Vector2(0, 0), light = new Vector2(1, 0);
                 surf.AddNormal(vS.Cross(vEdge).Normalized()); // TODO use IndexVector
                 surf.AddTriangleFan(new Vector3[] { pos, pos + vEdge, pos + vEdge + vS, pos + vS },
-                    colors: new Color[] {color, color, Colors.White, Colors.White });
+                    uvs: EDGE_SHADOW_UVS1);
                 surf.AddNormal(vEdge.Cross(vT).Normalized());
                 surf.AddTriangleFan(new Vector3[] { pos, pos + vT, pos + vEdge + vT, pos + vEdge },
-                    colors: new Color[] {color, Colors.White, Colors.White, color });
+                    uvs: EDGE_SHADOW_UVS2);
                 numQuads += 2;
             }
         }
