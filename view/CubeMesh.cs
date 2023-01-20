@@ -29,7 +29,7 @@ public class CubeMesh : Spatial {
     public bool FacesVisible { get; set; } = true;
     public bool EdgeShadowsVisible { get; set; } = true;
     public float EdgeShadowSize { get; set; } = 0.5f;
-    public Color EdgeShadowColor { get; set; } = new Color(.5f, .5f, .5f);
+    public Color EdgeShadowColor { get; set; } = new Color(.7f, .7f, .7f);
     public bool EdgesVisible { get; set; }
     public bool DebugLeavesVisible { get; set; }
 
