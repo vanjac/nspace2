@@ -1,9 +1,16 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://assets/grid.png" type="Texture" id=1]
 [ext_resource path="res://view/CubeMesh.cs" type="Script" id=2]
 
 [sub_resource type="SpatialMaterial" id=2]
+flags_unshaded = true
+vertex_color_use_as_albedo = true
+params_blend_mode = 3
+params_grow = true
+params_grow_amount = 0.001
+
+[sub_resource type="SpatialMaterial" id=3]
 flags_unshaded = true
 flags_use_point_size = true
 params_point_size = 7.0
@@ -21,8 +28,11 @@ script = ExtResource( 2 )
 
 [node name="MeshInstance" type="MeshInstance" parent="."]
 
-[node name="Edges" type="MeshInstance" parent="."]
+[node name="Shadow" type="MeshInstance" parent="."]
 material_override = SubResource( 2 )
+
+[node name="Edges" type="MeshInstance" parent="."]
+material_override = SubResource( 3 )
 
 [node name="Grid" type="MeshInstance" parent="."]
 visible = false

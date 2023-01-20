@@ -5,6 +5,7 @@ using System.Collections.Generic;
 public class CubeMesh : Spatial {
     [NodeRef("Grid")] private MeshInstance nGrid;
     private ArrayMesh mesh = new ArrayMesh();
+    private ArrayMesh shadowMesh = new ArrayMesh();
     private ArrayMesh edgeMesh = new ArrayMesh();
     private ConcavePolygonShape singleShape = new ConcavePolygonShape();
     private ConcavePolygonShape doubleShape = new ConcavePolygonShape();
@@ -26,6 +27,9 @@ public class CubeMesh : Spatial {
     }
 
     public bool FacesVisible { get; set; } = true;
+    public bool EdgeShadowsVisible { get; set; } = true;
+    public float EdgeShadowSize { get; set; } = 0.5f;
+    public Color EdgeShadowColor { get; set; } = new Color(.5f, .5f, .5f);
     public bool EdgesVisible { get; set; }
     public bool DebugLeavesVisible { get; set; }
 
@@ -33,6 +37,7 @@ public class CubeMesh : Spatial {
         NodeRefAttribute.GetAllNodes(this);
         GetNode<MeshInstance>("MeshInstance").Mesh = mesh;
         nGrid.Mesh = mesh;
+        GetNode<MeshInstance>("Shadow").Mesh = shadowMesh;
         GetNode<MeshInstance>("Edges").Mesh = edgeMesh;
         GetNode<CollisionShape>("SingleSided/CollisionShape").Shape = singleShape;
         GetNode<CollisionShape>("DoubleSided/CollisionShape").Shape = doubleShape;
@@ -41,6 +46,7 @@ public class CubeMesh : Spatial {
     public CubeStats UpdateMesh(Cube root, Vector3 pos, float size, Guid voidVolume,
             Dictionary<Guid, Material> materials) {
         mesh.ClearSurfaces();
+        shadowMesh.ClearSurfaces();
         edgeMesh.ClearSurfaces();
         var stats = new CubeStats();
         var vLeaf = new Cube.Leaf(voidVolume).Immut();
@@ -73,6 +79,19 @@ public class CubeMesh : Spatial {
             }
         }
         GD.Print($"Updating mesh took {Time.GetTicksMsec() - startTick}ms");
+
+        if (EdgeShadowsVisible) {
+            var shadowSurf = new SurfaceTool();
+            shadowSurf.Begin(Mesh.PrimitiveType.Triangles);
+            for (int axis = 0; axis < 3; axis++) {
+                ForEachEdge((vLeaf, vLeaf, vLeaf, root), pos, size, axis, (leaves, pos, size) => {
+                    stats.quads += BuildShadowEdge(leaves, pos, size, axis, shadowSurf,
+                        EdgeShadowSize, EdgeShadowColor);
+                });
+            }
+            shadowSurf.Index();
+            shadowSurf.Commit(shadowMesh);
+        }
 
         if (EdgesVisible) {
             var edgeSurf = new SurfaceTool();
@@ -154,7 +173,7 @@ public class CubeMesh : Spatial {
 
     private static void AddQuad(SurfaceTool st, Vector3 pos, float size, int axis, bool dir) {
         var (vS, vT) = FaceTangents(axis, dir, size);
-        Vector3[] verts = new Vector3[] { pos, pos + vT, pos + vS + vT, pos + vS };
+        var verts = new Vector3[] { pos, pos + vT, pos + vS + vT, pos + vS };
         st.AddNormal(CubeUtil.IndexVector(1 << axis) * (dir ? 1 : -1));
         var uvs = new Vector2[4];
         for (int i = 0; i < 4; i++) {
@@ -173,6 +192,33 @@ public class CubeMesh : Spatial {
         var tris = solidBoundary ? singleTris : doubleTris;
         var (vS, vT) = FaceTangents(axis, max.Val.volume != Volume.SOLID, size);
         tris.AddRange(new Vector3[] { pos, pos + vT, pos + vS + vT, pos, pos + vS + vT, pos + vS });
+    }
+
+    private static int BuildShadowEdge(Arr4<Cube.LeafImmut> leaves,
+            Vector3 pos, float size, int axis, SurfaceTool surf, float width, Color color) {
+        int numQuads = 0;
+        for (int i = 0; i < 4; i++) {
+            int adj1 = i ^ 1;
+            int adj2 = i ^ 2;
+            if (leaves[i].Val.volume != Volume.SOLID
+                    && leaves[adj1].Val.volume == Volume.SOLID
+                    && leaves[adj2].Val.volume == Volume.SOLID) {
+                var vEdge = CubeUtil.IndexVector(1 << axis) * size;
+                var vS = CubeUtil.IndexVector(CubeUtil.CycleIndex(1, axis + 1)) * width;
+                if ((i & 1) == 0) vS = -vS;
+                var vT = CubeUtil.IndexVector(CubeUtil.CycleIndex(1, axis + 2)) * width;
+                if ((i & 2) == 0) vT = -vT;
+                if (((i & 1) ^ ((i >> 1) & 1)) == 0) (vS, vT) = (vT, vS); // TODO jank
+                surf.AddNormal(vS.Cross(vEdge).Normalized()); // TODO use IndexVector
+                surf.AddTriangleFan(new Vector3[] { pos, pos + vEdge, pos + vEdge + vS, pos + vS },
+                    colors: new Color[] {color, color, Colors.White, Colors.White });
+                surf.AddNormal(vEdge.Cross(vT).Normalized());
+                surf.AddTriangleFan(new Vector3[] { pos, pos + vT, pos + vEdge + vT, pos + vEdge },
+                    colors: new Color[] {color, Colors.White, Colors.White, color });
+                numQuads += 2;
+            }
+        }
+        return numQuads;
     }
 
     private static bool HasEdge(Arr4<Cube.LeafImmut> leaves) {
