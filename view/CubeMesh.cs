@@ -36,7 +36,8 @@ public class CubeMesh : Spatial {
         NodeRefAttribute.GetAllNodes(this);
         GetNode<MeshInstance>("MeshInstance").Mesh = mesh;
         nGrid.Mesh = mesh;
-        GetNode<MeshInstance>("Shadow").Mesh = shadowMesh;
+        GetNode<MeshInstance>("ShadowFront").Mesh = shadowMesh;
+        GetNode<MeshInstance>("ShadowBack").Mesh = shadowMesh;
         GetNode<MeshInstance>("Edges").Mesh = edgeMesh;
         GetNode<CollisionShape>("SingleSided/CollisionShape").Shape = singleShape;
         GetNode<CollisionShape>("DoubleSided/CollisionShape").Shape = doubleShape;
