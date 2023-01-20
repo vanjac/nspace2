@@ -79,8 +79,10 @@ public class CubeMesh : Spatial {
             edgeSurf.Begin(Mesh.PrimitiveType.Lines);
             for (int axis = 0; axis < 3; axis++) {
                 ForEachEdge((vLeaf, vLeaf, vLeaf, root), pos, size, axis, (leaves, pos, size) => {
-                    edgeSurf.AddVertex(pos);
-                    edgeSurf.AddVertex(pos + CubeUtil.IndexVector(1 << axis) * size);
+                    if (HasEdge(leaves)) {
+                        edgeSurf.AddVertex(pos);
+                        edgeSurf.AddVertex(pos + CubeUtil.IndexVector(1 << axis) * size);
+                    }
                 });
             }
 
@@ -88,7 +90,8 @@ public class CubeMesh : Spatial {
             vertSurf.Begin(Mesh.PrimitiveType.Points);
             ForEachVertex((vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, vLeaf, root), pos, size,
                 (leaves, pos) => {
-                    vertSurf.AddVertex(pos);
+                    if (HasVertex(leaves))
+                        vertSurf.AddVertex(pos);
                 });
 
             edgeSurf.Index();
@@ -122,6 +125,8 @@ public class CubeMesh : Spatial {
 
     private static int BuildFaceMesh(Cube.LeafImmut min, Cube.LeafImmut max,
             Vector3 pos, float size, int axis, Dictionary<Guid, SurfaceTool> surfs) {
+        if (min.Val.volume == max.Val.volume)
+            return 0;
         bool solidBoundary = min.Val.volume == Volume.SOLID || max.Val.volume == Volume.SOLID;
         Cube.Face face = max.face(axis).Val;
         Guid material = (solidBoundary ? face.base_ : face.overlay).material;
@@ -162,10 +167,42 @@ public class CubeMesh : Spatial {
 
     private static void BuildFaceCollision(Cube.LeafImmut min, Cube.LeafImmut max,
             Vector3 pos, float size, int axis, List<Vector3> singleTris, List<Vector3> doubleTris) {
+        if (min.Val.volume == max.Val.volume)
+            return;
         bool solidBoundary = min.Val.volume == Volume.SOLID || max.Val.volume == Volume.SOLID;
         var tris = solidBoundary ? singleTris : doubleTris;
         var (vS, vT) = FaceTangents(axis, max.Val.volume != Volume.SOLID, size);
         tris.AddRange(new Vector3[] { pos, pos + vT, pos + vS + vT, pos, pos + vS + vT, pos + vS });
+    }
+
+    private static bool HasEdge(Arr4<Cube.LeafImmut> leaves) {
+        for (int i = 0; i < 4; i++) {
+            int adj1 = i ^ 1;
+            int adj2 = i ^ 2;
+            if (leaves[i].Val.volume != leaves[adj1].Val.volume
+                    && leaves[i].Val.volume != leaves[adj2].Val.volume)
+                return true;
+        }
+        return false;
+    }
+
+    private static bool HasVertex(Arr8<Cube.LeafImmut> leaves) {
+        bool hasEdgeOneAxis = false;
+        for (int axis = 0; axis < 3; axis++) {
+            var minLeaves = new Arr4<Cube.LeafImmut>();
+            var maxLeaves = new Arr4<Cube.LeafImmut>();
+            for (int i = 0; i < 4; i++) {
+                int leafI = CubeUtil.CycleIndex(i, axis + 1);
+                minLeaves[i] = leaves[leafI];
+                maxLeaves[i] = leaves[leafI | (1 << axis)];
+            }
+            if (HasEdge(minLeaves) || HasEdge(maxLeaves)) {
+                if (hasEdgeOneAxis)
+                    return true; // a different axis also had an edge, so there's a corner
+                hasEdgeOneAxis = true;
+            }
+        }
+        return false;
     }
 
     private delegate void FaceCallback(Cube.LeafImmut min, Cube.LeafImmut max,
@@ -174,8 +211,7 @@ public class CubeMesh : Spatial {
     private static void ForEachFace(Cube cubeMin, Cube cubeMax, Vector3 pos, float size, int axis,
             FaceCallback callback) {
         if (cubeMin is Cube.LeafImmut leafMin && cubeMax is Cube.LeafImmut leafMax) {
-            if (leafMin.Val.volume != leafMax.Val.volume)
-                callback(leafMin, leafMax, pos, size);
+            callback(leafMin, leafMax, pos, size);
         } else {
             for (int i = 0; i < 4; i++) {
                 int childI = CubeUtil.CycleIndex(i, axis + 1);
@@ -199,8 +235,7 @@ public class CubeMesh : Spatial {
     private static void ForEachEdge(Arr4<Cube> cubes, Vector3 pos, float size, int axis,
             EdgeCallback callback) {
         if (AllLeaves(cubes, out Arr4<Cube.LeafImmut> leaves)) {
-            if (HasEdge(leaves))
-                callback(leaves, pos, size);
+            callback(leaves, pos, size);
         } else {
             var aBit = 1 << axis;
             for (int i = 0; i < 8; i++) {
@@ -230,8 +265,7 @@ public class CubeMesh : Spatial {
     private static void ForEachVertex(Arr8<Cube> cubes, Vector3 pos, float size,
             VertexCallback callback) {
         if (AllLeaves(cubes, out Arr8<Cube.LeafImmut> leaves)) {
-            if (HasVertex(leaves))
-                callback(leaves, pos);
+            callback(leaves, pos);
         } else {
             for (int i = 0; i < 8; i++) { // index into cubes[7]
                 var adjacent = new Arr8<Cube>();
@@ -265,36 +299,6 @@ public class CubeMesh : Spatial {
                 ForEachLeaf(branch.child(i), childPos, size / 2, callback);
             }
         }
-    }
-
-    private static bool HasEdge(Arr4<Cube.LeafImmut> leaves) {
-        for (int i = 0; i < 4; i++) {
-            int adj1 = i ^ 1;
-            int adj2 = i ^ 2;
-            if (leaves[i].Val.volume != leaves[adj1].Val.volume
-                    && leaves[i].Val.volume != leaves[adj2].Val.volume)
-                return true;
-        }
-        return false;
-    }
-
-    private static bool HasVertex(Arr8<Cube.LeafImmut> leaves) {
-        bool hasEdgeOneAxis = false;
-        for (int axis = 0; axis < 3; axis++) {
-            var minLeaves = new Arr4<Cube.LeafImmut>();
-            var maxLeaves = new Arr4<Cube.LeafImmut>();
-            for (int i = 0; i < 4; i++) {
-                int leafI = CubeUtil.CycleIndex(i, axis + 1);
-                minLeaves[i] = leaves[leafI];
-                maxLeaves[i] = leaves[leafI | (1 << axis)];
-            }
-            if (HasEdge(minLeaves) || HasEdge(maxLeaves)) {
-                if (hasEdgeOneAxis)
-                    return true; // a different axis also had an edge, so there's a corner
-                hasEdgeOneAxis = true;
-            }
-        }
-        return false;
     }
 
     private static bool AllLeaves(Arr4<Cube> cubes, out Arr4<Cube.LeafImmut> leaves) {
