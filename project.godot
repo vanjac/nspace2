@@ -12,6 +12,9 @@ config_version=4
 
 config/name="octree-cs"
 run/main_scene="res://edit/test.tscn"
+boot_splash/show_image=false
+boot_splash/fullsize=false
+boot_splash/bg_color=Color( 0, 0, 0, 1 )
 config/icon="res://icon.png"
 
 [display]
