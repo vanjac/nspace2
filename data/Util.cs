@@ -45,13 +45,13 @@ public static class Immut {
 /// <typeparam name="T">Type of item contained in the array</typeparam>
 public struct Arr3<T> {
     [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.RootHidden)]
-    public ValueTuple<T, T, T> Items;
+    public (T, T, T) Items;
 
     public Arr3(T item1, T item2, T item3) {
         Items = (item1, item2, item3);
     }
 
-    public static implicit operator Arr3<T>(ValueTuple<T, T, T> tuple)
+    public static implicit operator Arr3<T>((T, T, T) tuple)
         => new Arr3<T> { Items = tuple };
 
     public T this[int i] {
@@ -80,13 +80,13 @@ public struct Arr3<T> {
 /// <typeparam name="T">Type of item contained in the array</typeparam>
 public struct Arr4<T> {
     [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.RootHidden)]
-    public ValueTuple<T, T, T, T> Items;
+    public (T, T, T, T) Items;
 
     public Arr4(T item1, T item2, T item3, T item4) {
         Items = (item1, item2, item3, item4);
     }
 
-    public static implicit operator Arr4<T>(ValueTuple<T, T, T, T> tuple)
+    public static implicit operator Arr4<T>((T, T, T, T) tuple)
         => new Arr4<T> { Items = tuple };
 
     public T this[int i] {
@@ -117,13 +117,13 @@ public struct Arr4<T> {
 /// <typeparam name="T">Type of item contained in the array</typeparam>
 public struct Arr8<T> {
     [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.RootHidden)]
-    public ValueTuple<T, T, T, T, T, T, T, ValueTuple<T>> Items;
+    public (T, T, T, T, T, T, T, T) Items;
 
     public Arr8(T item1, T item2, T item3, T item4, T item5, T item6, T item7, T item8) {
         Items = (item1, item2, item3, item4, item5, item6, item7, item8);
     }
 
-    public static implicit operator Arr8<T>(ValueTuple<T, T, T, T, T, T, T, ValueTuple<T>> tuple)
+    public static implicit operator Arr8<T>((T, T, T, T, T, T, T, T) tuple)
         => new Arr8<T> { Items = tuple };
 
     public T this[int i] {
