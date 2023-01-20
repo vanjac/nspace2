@@ -188,6 +188,8 @@ public struct CubePos {
     /// <param name="depth">Depth of the descendent cube.</param>
     /// <returns>CubePos where each coordinate is some multiple of CubeSize(depth).</returns>
     public readonly CubePos Floor(int depth) {
+        if (depth <= 0)
+            return new CubePos();
         uint mask = ~0u << (32 - depth);
         return new CubePos(x & mask, y & mask, z & mask);
     }
