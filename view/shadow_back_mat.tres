@@ -16,12 +16,12 @@ void vertex() {
 void fragment() {
 	vec3 screen_color = texture(SCREEN_TEXTURE, SCREEN_UV).rgb; // only includes opaque objects!
 	// undo multiplication from shadow_front_mat
-	vec3 new_color = screen_color / texture(texture_albedo, UV).rgb;
-	ALBEDO = new_color - screen_color;
+	ALBEDO = screen_color * (1.0 - texture(texture_albedo, UV).rgb);
 }
 "
 
 [resource]
+render_priority = -1
 shader = SubResource( 1 )
 shader_param/grow = -0.001
 shader_param/texture_albedo = ExtResource( 1 )
