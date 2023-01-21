@@ -39,8 +39,7 @@ public class AdjustHandle : Spatial {
         var dist = (touchPos - screenOrigin).Dot(screenDir) / screenDir.LengthSquared();
         var posAlongLine = screenOrigin + dist * screenDir;
 
-        var rayOrigin = camera.ProjectRayOrigin(posAlongLine);
-        var rayDir = camera.ProjectRayNormal(posAlongLine);
+        var (rayOrigin, rayDir) = GDUtil.ProjectRayClipped(camera, posAlongLine);
 
         // https://math.stackexchange.com/a/3436386
         // see also: https://stackoverflow.com/q/2316490/11525734

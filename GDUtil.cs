@@ -21,6 +21,14 @@ public class NodeRefAttribute : Attribute {
 
 public static class GDUtil {
     public static float DistanceToCamera(Camera camera, Vector3 point) {
-        return (point - camera.GlobalTranslation).Project(camera.GlobalTransform.basis.z).Length();
+        var transform = camera.GetCameraTransform();
+        return (point - transform.origin).Project(transform.basis.z).Length();
+    }
+
+    public static (Vector3 origin, Vector3 dir) ProjectRayClipped(Camera camera, Vector2 point) {
+        var camPos = camera.GetCameraTransform().origin;
+        var dir = camera.ProjectRayNormal(point);
+        var nearPlane = (Plane)camera.GetFrustum()[0]; // TODO avoid allocation
+        return (nearPlane.IntersectRay(camPos, dir) ?? camPos, dir);
     }
 }

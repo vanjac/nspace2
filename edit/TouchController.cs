@@ -165,8 +165,9 @@ public class TouchController : Node {
     }
 
     private void PanRelative(Vector2 relative) {
-        EmitSignal(nameof(CameraPan), (nCamera.GlobalTransform.basis.y * relative.y
-            + nCamera.GlobalTransform.basis.x * -relative.x) * PAN_SCALE);
+        var camBasis = nCamera.GetCameraTransform().basis;
+        EmitSignal(nameof(CameraPan),
+            (camBasis.y * relative.y + camBasis.x * -relative.x) * PAN_SCALE);
     }
 
     private Vector2 AverageTouchPosition() {
@@ -187,10 +188,10 @@ public class TouchController : Node {
     private bool RayCastCursor(Vector2 screenPoint,
             out Vector3 point, out Vector3 normal, out CollisionObject obj,
             uint mask = PhysicsLayers.CubeMask) {
-        var rayDir = nCamera.ProjectRayNormal(screenPoint);
-        nRayCast.CollisionMask = mask;
-        nRayCast.GlobalTranslation = nCamera.ProjectRayOrigin(screenPoint);
+        var (rayOrigin, rayDir) = GDUtil.ProjectRayClipped(nCamera, screenPoint);
+        nRayCast.GlobalTranslation = rayOrigin;
         nRayCast.CastTo = rayDir * MAX_SELECT_DIST;
+        nRayCast.CollisionMask = mask;
         nRayCast.ForceRaycastUpdate();
         while (nRayCast.IsColliding()) {
             point = nRayCast.GetCollisionPoint();
