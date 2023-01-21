@@ -95,8 +95,7 @@ public class TouchController : Node {
                             EmitSignal(nameof(SelectDrag), pos, norm);
                         break;
                     case TouchState.Adjust:
-                        grabbedHandle.OnDrag(nCamera.ProjectRayOrigin(drag.Position),
-                            nCamera.ProjectRayNormal(drag.Position));
+                        grabbedHandle.OnDrag(drag.Position);
                         break;
                 }
             } else if (touchPositions.Count > 1) {
@@ -135,8 +134,7 @@ public class TouchController : Node {
                     } else if ((obj.CollisionLayer & (1 << PhysicsLayers.AdjustHandle)) != 0) {
                         singleTouchState = TouchState.Adjust;
                         grabbedHandle = (AdjustHandle)obj.GetParent();
-                        grabbedHandle.OnPress(nCamera.ProjectRayOrigin(touch.Position),
-                            nCamera.ProjectRayNormal(touch.Position));
+                        grabbedHandle.OnPress(touch.Position);
                     }
                 }
                 RefocusCursor(AverageTouchPosition());

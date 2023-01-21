@@ -32,8 +32,18 @@ public class AdjustHandle : Spatial {
         nHandle.Translation = new Vector3(0, 0, scaledDist);
     }
 
-    private float DistAlongLine(Vector3 rayOrigin, Vector3 rayDir) {
+    private float DistAlongLine(Vector2 touchPos) {
+        var screenOrigin = camera.UnprojectPosition(GlobalTranslation);
+        var dir = GlobalTransform.basis.z.Normalized();
+        var screenDir = camera.UnprojectPosition(GlobalTranslation + dir * 0.1f) - screenOrigin;
+        var dist = (touchPos - screenOrigin).Dot(screenDir) / screenDir.LengthSquared();
+        var posAlongLine = screenOrigin + dist * screenDir;
+
+        var rayOrigin = camera.ProjectRayOrigin(posAlongLine);
+        var rayDir = camera.ProjectRayNormal(posAlongLine);
+
         // https://math.stackexchange.com/a/3436386
+        // see also: https://stackoverflow.com/q/2316490/11525734
         rayDir = rayDir.Normalized();
         Vector3 myOrigin = GlobalTranslation;
         Vector3 myDir = GlobalTransform.basis.z.Normalized();
@@ -46,13 +56,13 @@ public class AdjustHandle : Spatial {
         return -rejection.Length() / myDir.Dot(rejection.Normalized());
     }
 
-    public void OnPress(Vector3 origin, Vector3 dir) {
-        startDist = DistAlongLine(origin, dir);
+    public void OnPress(Vector2 touchPos) {
+        startDist = DistAlongLine(touchPos);
         EmitSignal(nameof(AdjustStart));
     }
 
-    public void OnDrag(Vector3 origin, Vector3 dir) {
-        dist = DistAlongLine(origin, dir) - startDist;
+    public void OnDrag(Vector2 touchPos) {
+        dist = DistAlongLine(touchPos) - startDist;
         if (Mathf.Abs(dist) > snap) {
             int units = dist >= 0 ? Mathf.FloorToInt(dist / snap) : Mathf.CeilToInt(dist / snap);
             EmitSignal(nameof(Adjust), units); // should move position!
