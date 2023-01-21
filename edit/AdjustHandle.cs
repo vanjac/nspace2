@@ -57,6 +57,7 @@ public class AdjustHandle : Spatial {
             int units = dist >= 0 ? Mathf.FloorToInt(dist / snap) : Mathf.CeilToInt(dist / snap);
             EmitSignal(nameof(Adjust), units); // should move position!
             dist -= units * snap;
+            Input.VibrateHandheld(1);
         }
         Update();
     }
