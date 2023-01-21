@@ -4,7 +4,7 @@
 
 [sub_resource type="Shader" id=1]
 code = "shader_type spatial;
-render_mode async_visible, blend_mix, depth_draw_opaque, cull_back, unshaded;
+render_mode async_visible, blend_add, depth_draw_never, cull_back, unshaded;
 
 uniform sampler2D texture_albedo : hint_albedo;
 uniform float grow;
@@ -14,9 +14,10 @@ void vertex() {
 }
 
 void fragment() {
-	// undo multiplication
-	vec4 screen_color = texture(SCREEN_TEXTURE, SCREEN_UV);
-	ALBEDO = screen_color.rgb / texture(texture_albedo, UV).rgb;
+	vec3 screen_color = texture(SCREEN_TEXTURE, SCREEN_UV).rgb; // only includes opaque objects!
+	// undo multiplication from shadow_front_mat
+	vec3 new_color = screen_color / texture(texture_albedo, UV).rgb;
+	ALBEDO = new_color - screen_color;
 }
 "
 
