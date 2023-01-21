@@ -1,0 +1,31 @@
+[gd_scene load_steps=5 format=2]
+
+[ext_resource path="res://edit/AdjustHandle.cs" type="Script" id=1]
+
+[sub_resource type="CylinderMesh" id=6]
+
+[sub_resource type="SphereShape" id=5]
+
+[sub_resource type="SphereMesh" id=3]
+
+[node name="AdjustHandle" type="Spatial"]
+script = ExtResource( 1 )
+
+[node name="Line" type="Spatial" parent="."]
+
+[node name="MeshInstance" type="MeshInstance" parent="Line"]
+transform = Transform( 0.02, 0, 0, 0, -2.18557e-08, -0.02, 0, 0.5, -8.74228e-10, 0, 0, 0.5 )
+mesh = SubResource( 6 )
+skeleton = NodePath("../..")
+
+[node name="Handle" type="StaticBody" parent="."]
+transform = Transform( 0.2, 0, 0, 0, 0.2, 0, 0, 0, 0.2, 0, 0, 1 )
+collision_layer = 8
+collision_mask = 0
+
+[node name="CollisionShape" type="CollisionShape" parent="Handle"]
+shape = SubResource( 5 )
+
+[node name="MeshInstance" type="MeshInstance" parent="Handle"]
+mesh = SubResource( 3 )
+skeleton = NodePath("../..")
