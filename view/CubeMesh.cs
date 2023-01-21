@@ -56,7 +56,6 @@ public class CubeMesh : Spatial {
         var matSurfs = new Dictionary<Guid, SurfaceTool>();
         var singleTris = new List<Vector3>();
         var doubleTris = new List<Vector3>();
-        ulong startTick = Time.GetTicksMsec();
         for (int axis = 0; axis < 3; axis++) {
             ForEachFace(vLeaf, root, pos, size, axis, (min, max, pos, size) => {
                 if (FacesVisible)
@@ -64,9 +63,7 @@ public class CubeMesh : Spatial {
                 BuildFaceCollision(min, max, pos, size, axis, singleTris, doubleTris);
             });
         }
-        GD.Print($"Generating mesh took {Time.GetTicksMsec() - startTick}ms");
 
-        startTick = Time.GetTicksMsec();
         singleShape.Data = singleTris.ToArray();
         doubleShape.Data = doubleTris.ToArray();
         if (FacesVisible) {
@@ -80,7 +77,6 @@ public class CubeMesh : Spatial {
                     mesh.SurfaceSetMaterial(surfI++, mat);
             }
         }
-        GD.Print($"Updating mesh took {Time.GetTicksMsec() - startTick}ms");
 
         if (EdgeShadowsVisible) {
             var shadowSurf = new SurfaceTool();

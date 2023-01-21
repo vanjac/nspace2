@@ -1,4 +1,3 @@
-using Godot;
 using System;
 
 /// <summary>
@@ -96,15 +95,4 @@ public static class Volume {
 
 public static class CubeDebug {
     public static int allocCount;
-    private static ulong startTick;
-
-    public static void BeginOperation() {
-        allocCount = 0;
-        startTick = Time.GetTicksMsec();
-    }
-
-    public static void EndOperation(string name) {
-        GD.Print($"{name} took {Time.GetTicksMsec() - startTick}ms"
-            + $" and created {allocCount} cubes");
-    }
 }
