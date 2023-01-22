@@ -45,6 +45,8 @@ public class AdjustHandle : Spatial {
         var screenOrigin = camera.UnprojectPosition(GlobalTranslation);
         var dir = GlobalTransform.basis.z.Normalized();
         var screenDir = camera.UnprojectPosition(GlobalTranslation + dir * 0.1f) - screenOrigin;
+        if (screenDir.LengthSquared() == 0)
+            return 0;
         var dist = (touchPos - screenOrigin).Dot(screenDir) / screenDir.LengthSquared();
         var posAlongLine = screenOrigin + dist * screenDir;
 
