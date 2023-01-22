@@ -11,10 +11,19 @@ public class AdjustHandle : Spatial {
     public float snap = 1;
 
     [NodeRef("Line")] private Spatial nLine;
-    [NodeRef("Handle")] private Spatial nHandle;
+    [NodeRef("Handle")] private StaticBody nHandle;
+    [NodeRef("Handle/CollisionShape")] private CollisionShape nHandleShape;
     private const float SCALE = 0.25f;
     private Camera camera;
     private float startDist, dist;
+
+    public bool Enabled {
+        get => Visible;
+        set {
+            Visible = value;
+            nHandleShape.Disabled = !value;
+        }
+    }
 
     public override void _Ready() {
         NodeRefAttribute.GetAllNodes(this);
