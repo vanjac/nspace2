@@ -122,6 +122,18 @@ public static class CubeEdit {
     }
 
     /// <summary>
+    /// Set all faces within a cube located in the root.
+    /// </summary>
+    /// <param name="root">Root cube in which the cube is located.</param>
+    /// <param name="pos">Position of the cube to modify.</param>
+    /// <param name="depth">Depth of cube to modify in root.</param>
+    /// <param name="face">New value to replace existing faces.</param>
+    /// <returns>The root cube with all faces replaced.</returns>
+    public static Cube PutFaces(Cube root, CubePos pos, int depth, Immut<Cube.Face> face) {
+        return CubeApply(root, pos, depth, c => SetAllFaces(c, face));
+    }
+
+    /// <summary>
     /// Set all faces within a square aligned to the side of one cube.
     /// </summary>
     /// <param name="root">Root cube in which the square is located.</param>
@@ -135,6 +147,34 @@ public static class CubeEdit {
     public static Cube PutFaces(Cube root, CubePos pos, int depth, int axis,
             Immut<Cube.Face> face) {
         return CubeApply(root, pos, depth, c => SetAllFaces(c, axis, face));
+    }
+
+    /// <summary>
+    /// Set all faces inside the cube.
+    /// </summary>
+    /// <param name="cube">Target cube containing faces to be set.</param>
+    /// <param name="face">New value to replace existing faces.</param>
+    /// <returns>The given cube with all faces replaced.</returns>
+    private static Cube SetAllFaces(Cube cube, Immut<Cube.Face> face) {
+        if (cube is Cube.LeafImmut leaf) {
+            for (int axis = 0; axis < 3; axis++) {
+                if (!leaf.face(axis).Val.Equals(face.Val)) {
+                    var newLeaf = leaf.Val;
+                    newLeaf.faces = (face, face, face);
+                    return newLeaf.Immut();
+                }
+            }
+            return cube; // avoid allocation
+        } else {
+            var newBranch = (cube as Cube.BranchImmut).Val;
+            bool modified = false;
+            for (int i = 0; i < 8; i++) {
+                newBranch.children[i] = Util.AssignChanged(newBranch.children[i],
+                    SetAllFaces(newBranch.children[i], face), ref modified);
+            }
+            if (!modified) return cube; // avoid allocation
+            return newBranch.Immut();
+        }
     }
 
     /// <summary>
