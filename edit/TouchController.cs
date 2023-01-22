@@ -128,14 +128,12 @@ public class TouchController : Node {
             if (touchPositions.Count == 1 && touch.Index == singleTouch) {
                 singleTouchState = TouchState.None; // definitely not GUI
                 if (RayCastCursor(touch.Position, out _, out _, out CollisionObject obj,
-                        mask: PhysicsLayers.CubeMask | (1 << PhysicsLayers.AdjustHandle))) {
-                    if ((obj.CollisionLayer & PhysicsLayers.CubeMask) != 0) {
-                        singleTouchState = TouchState.SelectPending;
-                    } else if ((obj.CollisionLayer & (1 << PhysicsLayers.AdjustHandle)) != 0) {
-                        singleTouchState = TouchState.Adjust;
-                        grabbedHandle = (AdjustHandle)obj.GetParent();
-                        grabbedHandle.OnPress(touch.Position);
-                    }
+                        mask: 1 << PhysicsLayers.AdjustHandle)) {
+                    singleTouchState = TouchState.Adjust;
+                    grabbedHandle = (AdjustHandle)obj.GetParent();
+                    grabbedHandle.OnPress(touch.Position);
+                } else if (RayCastCursor(touch.Position, out _, out _, out obj)) { // select cube
+                    singleTouchState = TouchState.SelectPending;
                 }
                 RefocusCursor(AverageTouchPosition());
             }
