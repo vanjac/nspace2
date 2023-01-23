@@ -204,12 +204,15 @@ public class CubeMesh : Spatial {
     private static int BuildShadowEdge(Arr4<Cube.LeafImmut> leaves,
             Vector3 pos, float size, int axis, SurfaceTool surf, float width) {
         int numQuads = 0;
+        var lightMat = CubeMaterial.LIGHT;
         for (int i = 0; i < 4; i++) {
             int adj1 = i ^ 1;
             int adj2 = i ^ 2;
             if (leaves[i].Val.volume != Volume.SOLID
                     && leaves[adj1].Val.volume == Volume.SOLID
-                    && leaves[adj2].Val.volume == Volume.SOLID) {
+                    && leaves[adj2].Val.volume == Volume.SOLID
+                    && leaves[i | 1].face((axis + 1) % 3).Val.base_.material != lightMat
+                    && leaves[i | 2].face((axis + 2) % 3).Val.base_.material != lightMat) {
                 var vEdge = CubeUtil.IndexVector(1 << axis) * size;
                 var vS = CubeUtil.IndexVector(CubeUtil.CycleIndex(1, axis + 1)) * width;
                 if ((i & 1) == 0) vS = -vS;
@@ -232,14 +235,18 @@ public class CubeMesh : Spatial {
     private static int BuildShadowVertex(Arr8<Cube.LeafImmut> leaves, Vector3 pos,
             SurfaceTool surf, float width) {
         int numQuads = 0;
+        var lightMat = CubeMaterial.LIGHT;
         for (int i = 0; i < 8; i++) {
             if (leaves[i].Val.volume == Volume.SOLID && leaves[i ^ 7].Val.volume == Volume.SOLID) {
                 for (int axis = 0; axis < 3; axis++) {
-                    int aBit = 1 << axis;
-                    int s = CubeUtil.CycleIndex(aBit, 1), t = CubeUtil.CycleIndex(aBit, 2);
-                    if (leaves[i ^ aBit].Val.volume != Volume.SOLID
-                            && leaves[i ^ aBit ^ s].Val.volume != Volume.SOLID
-                            && leaves[i ^ aBit ^ t].Val.volume != Volume.SOLID) {
+                    int sAxis = (axis + 1) % 3, tAxis = (axis + 2) % 3;
+                    int p = 1 << axis, s = 1 << sAxis, t = 1 << tAxis;
+                    if (leaves[i ^ p].Val.volume != Volume.SOLID
+                            && leaves[i ^ p ^ s].Val.volume != Volume.SOLID
+                            && leaves[i ^ p ^ t].Val.volume != Volume.SOLID
+                            && leaves[i | p].face(axis).Val.base_.material != lightMat
+                            && leaves[(i ^ p ^ s) | t].face(tAxis).Val.base_.material != lightMat
+                            && leaves[(i ^ p ^ t) | s].face(sAxis).Val.base_.material != lightMat) {
                         var vS = CubeUtil.IndexVector(s) * width;
                         if ((i & s) == 0) vS = -vS;
                         var vT = CubeUtil.IndexVector(t) * width;

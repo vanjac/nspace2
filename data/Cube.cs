@@ -86,6 +86,7 @@ public interface Cube {
 public static class CubeMaterial {
     public static readonly Guid DEFAULT_BASE = new Guid("ee705545-80fe-4e67-a2b5-bf099e40f5e3");
     public static readonly Guid DEFAULT_OVERLAY = new Guid("0bbe0d1b-b713-424b-9fe8-1061b9f71d0e");
+    public static readonly Guid LIGHT = new Guid("d97ff6eb-a431-4744-9a8b-af59dd9a269f");
 }
 
 public static class Volume {
