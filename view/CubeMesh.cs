@@ -233,25 +233,25 @@ public class CubeMesh : Spatial {
             SurfaceTool surf, float width) {
         int numQuads = 0;
         for (int i = 0; i < 8; i++) {
-            if (leaves[i].Val.volume != Volume.SOLID) {
-                // exactly one of three of these should be true:
-                bool xSolid = leaves[i ^ 1].Val.volume == Volume.SOLID;
-                bool ySolid = leaves[i ^ 2].Val.volume == Volume.SOLID;
-                bool zSolid = leaves[i ^ 4].Val.volume == Volume.SOLID;
-                int solidBit = (xSolid ? 1 : 0) | (ySolid ? 2 : 0) | (zSolid ? 4 : 0);
-                if ((solidBit == 1 || solidBit == 2 || solidBit == 4)
-                        && leaves[i ^ solidBit ^ 7].Val.volume == Volume.SOLID) {
-                    int s = CubeUtil.CycleIndex(solidBit, 1), t = CubeUtil.CycleIndex(solidBit, 2);
-                    var vS = CubeUtil.IndexVector(s) * width;
-                    if ((i & s) == 0) vS = -vS;
-                    var vT = CubeUtil.IndexVector(t) * width;
-                    if ((i & t) == 0) vT = -vT;
-                    if (((i & 1) ^ ((i >> 1) & 1) ^ ((i >> 2) & 1)) == 0)
-                        (vS, vT) = (vT, vS);
-                    surf.AddNormal(vS.Cross(vT).Normalized()); // TODO use IndexVector
-                    surf.AddTriangleFan(new Vector3[] { pos, pos + vT, pos + vT + vS, pos + vS },
-                        uvs: VERTEX_SHADOW_UVS);
-                    numQuads++;
+            if (leaves[i].Val.volume == Volume.SOLID && leaves[i ^ 7].Val.volume == Volume.SOLID) {
+                for (int axis = 0; axis < 3; axis++) {
+                    int aBit = 1 << axis;
+                    int s = CubeUtil.CycleIndex(aBit, 1), t = CubeUtil.CycleIndex(aBit, 2);
+                    if (leaves[i ^ aBit].Val.volume != Volume.SOLID
+                            && leaves[i ^ aBit ^ s].Val.volume != Volume.SOLID
+                            && leaves[i ^ aBit ^ t].Val.volume != Volume.SOLID) {
+                        var vS = CubeUtil.IndexVector(s) * width;
+                        if ((i & s) == 0) vS = -vS;
+                        var vT = CubeUtil.IndexVector(t) * width;
+                        if ((i & t) == 0) vT = -vT;
+                        if (((i ^ (i >> 1) ^ (i >> 2)) & 1) != 0)
+                            (vS, vT) = (vT, vS);
+                        surf.AddNormal(vS.Cross(vT).Normalized()); // TODO use IndexVector
+                        surf.AddTriangleFan(
+                            new Vector3[] { pos, pos + vT, pos + vT + vS, pos + vS },
+                            uvs: VERTEX_SHADOW_UVS);
+                        numQuads++;
+                    }
                 }
             }
         }
