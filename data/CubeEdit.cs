@@ -1,4 +1,3 @@
-using Godot;
 using System;
 using System.Collections.Generic;
 
@@ -21,7 +20,7 @@ public static class CubeEdit {
             return root;
         } else {
             var branch = root as Cube.BranchImmut;
-            return GetCube(branch.child(pos.ChildIndex()), pos.ToChild(), depth - 1);
+            return GetCube(branch.child(pos.ChildIndex()), pos << 1, depth - 1);
         }
     }
 
@@ -50,7 +49,7 @@ public static class CubeEdit {
         int childI = pos.ChildIndex();
         bool modified = false;
         newBranch.children[childI] = Util.AssignChanged(newBranch.children[childI],
-            CubeApply(newBranch.children[childI], pos.ToChild(), depth - 1, func), ref modified);
+            CubeApply(newBranch.children[childI], pos << 1, depth - 1, func), ref modified);
         if (!modified) return root; // avoid allocation
         return newBranch.Immut();
     }
@@ -220,8 +219,8 @@ public static class CubeEdit {
         Cube oldDstCube = GetCube(dstRoot, dstPos, dstDepth);
         // TODO skip if adjacent selection
         for (int axis = 0; axis < 3; axis++) {
-            CubePos srcAxisOff = CubePos.Axis(axis, CubePos.CubeSize(srcDepth));
-            CubePos dstAxisOff = CubePos.Axis(axis, CubePos.CubeSize(dstDepth));
+            CubePos srcAxisOff = CubePos.FromAxis(axis, CubePos.CubeSize(srcDepth));
+            CubePos dstAxisOff = CubePos.FromAxis(axis, CubePos.CubeSize(dstDepth));
             // transfer min face from existing cube at dstPos (since it's overwritten with copied)
             copied = TransferFaces(GetCube(dstRoot, dstPos - dstAxisOff, dstDepth), oldDstCube,
                 copied, axis);
@@ -257,7 +256,7 @@ public static class CubeEdit {
             CubePos pos, int depth, int axis, bool dir) {
         // TODO: split into smaller functions
         uint size = CubePos.CubeSize(depth);
-        CubePos axisOff = CubePos.Axis(axis, size);
+        CubePos axisOff = CubePos.FromAxis(axis, size);
         CubePos minPos = pos - axisOff;
         CubePos fromPos = dir ? minPos : pos, toPos = dir ? pos : minPos;
         Cube minCube = GetCube(srcRoot, minPos, depth), maxCube = GetCube(srcRoot, pos, depth);
@@ -278,7 +277,7 @@ public static class CubeEdit {
         int sideChildI = dir ? (1 << axis) : 0;
         for (int i = 0; i < 2; i++) {
             int sideAxis = (axis + i + 1) % 3;
-            CubePos sideAxisOff = CubePos.Axis(sideAxis, size);
+            CubePos sideAxisOff = CubePos.FromAxis(sideAxis, size);
             // transfer existing face on min side...
             extruded = TransferFaces(GetCube(srcRoot, toPos - sideAxisOff, depth), toCube,
                 extruded, sideAxis);
@@ -451,29 +450,24 @@ public static class CubeEdit {
     /// The depth of the previous root of the world within the new root. Will be 0 if not expanded.
     /// </param>
     /// <returns>The expanded world.</returns>
-    public static CubeWorld ExpandWorld(CubeWorld world, IEnumerable<Vector3> points,
-            out CubePos oldRootPos, out int depth) {
-        oldRootPos = new CubePos(0, 0, 0);
-        depth = 0;
-        AABB unitBox = new AABB(Vector3.Zero, Vector3.One);
-        foreach (Vector3 point in points) {
-            while (true) {
-                Vector3 rootPt = CubeUtil.ToAncestorPos(point, oldRootPos, depth);
-                if (unitBox.HasPoint(rootPt))
-                    break;
-                int rootChildI =
-                    (rootPt.x < 0 ? 1 : 0) | (rootPt.y < 0 ? 2 : 0) | (rootPt.z < 0 ? 4 : 0);
-                Cube.Branch newRoot = new Cube.Branch(new Cube.Leaf(world.voidVolume).Immut());
-                newRoot.children[rootChildI] = world.root;
+    public static Immut<CubeWorld> ExpandWorld(Immut<CubeWorld> world,
+            IEnumerable<CubePos> points) {
+        CubeWorld w = world.Val;
+        bool modified = false;
+        foreach (CubePos point in points) {
+            while (!point.InCube(w.rootPos, w.rootDepth)) {
+                var rootPos = w.rootPos;
+                int rootChildI = (point - rootPos).ChildIndex(); // relies on 2's complement
+                Cube.Branch newRoot = new Cube.Branch(new Cube.Leaf(w.voidVolume).Immut());
+                newRoot.children[rootChildI] = w.root;
 
-                world.root = newRoot.Immut();
-                world.rootPos -= CubeUtil.IndexVector(rootChildI) * world.rootSize;
-                world.rootSize *= 2;
-                oldRootPos = oldRootPos.ToParent(rootChildI);
-                depth += 1;
+                w.root = newRoot.Immut();
+                w.rootDepth -= 1;
+                w.rootPos -= CubePos.FromChildIndex(rootChildI) >> w.rootDepth;
+                modified = true;
             }
         }
-        return world;
+        return modified ? Immut.Create(w) : world;
     }
 
     /// <summary>
@@ -488,36 +482,45 @@ public static class CubeEdit {
     /// The depth of the new root of the world within the previous root. Will be 0 if no change.
     /// </param>
     /// <returns>The world, possibly reduced in size.</returns>
-    private static CubeWorld ShrinkWorld(CubeWorld world, out CubePos newRootPos, out int depth) {
-        newRootPos = new CubePos(0, 0, 0);
-        depth = 0;
-        while (world.root is Cube.BranchImmut rootBranch) {
-            int singleBranchI = -1;
-            for (int i = 0; i < 8; i++) {
-                if (rootBranch.child(i) is Cube.BranchImmut) {
-                    if (singleBranchI != -1)
-                        return world; // can't shrink
-                    singleBranchI = i;
-                } else {
-                    if ((rootBranch.child(i) as Cube.LeafImmut).Val.volume != world.voidVolume)
-                        return world; // can't shrink
-                }
-            }
-            var child = rootBranch.child(singleBranchI);
-            for (int axis = 0; axis < 3; axis++) {
-                if ((singleBranchI & (1 << axis)) == 0) {
-                    if (!MaxSideVolumeEqual(child, axis, world.voidVolume))
-                        return world; // can't shrink
-                }
-            }
-
-            world.root = child;
-            world.rootSize /= 2;
-            world.rootPos += CubeUtil.IndexVector(singleBranchI) * world.rootSize;
-            newRootPos = newRootPos.ToParent(singleBranchI);
-            depth += 1;
+    private static Immut<CubeWorld> ShrinkWorld(Immut<CubeWorld> world) {
+        CubeWorld w = world.Val;
+        bool modified = false;
+        while (CanShrink(w, out int childI)) {
+            w.root = (w.root as Cube.BranchImmut).child(childI);
+            w.rootPos += CubePos.FromChildIndex(childI) >> w.rootDepth;
+            w.rootDepth += 1;
+            modified = true;
         }
-        return world;
+        return modified ? Immut.Create(w) : world;
+    }
+
+    /// <summary>
+    /// Check if the root of the world can be reduced to one of its children.
+    /// </summary>
+    /// <param name="world">The world to check.</param>
+    /// <param name="childI">Index of the child which can become the new root.</param>
+    /// <returns>True if the world root can be replaced with one of its children (childI).</returns>
+    private static bool CanShrink(CubeWorld world, out int childI) {
+        childI = -1;
+        if (!(world.root is Cube.BranchImmut branch))
+            return false;
+        for (int i = 0; i < 8; i++) {
+            if (branch.child(i) is Cube.BranchImmut) {
+                if (childI != -1) // more than one branch, can't shrink
+                    return false;
+                childI = i;
+            } else if ((branch.child(i) as Cube.LeafImmut).Val.volume != world.voidVolume) {
+                return false;
+            }
+        }
+        var child = branch.child(childI);
+        for (int axis = 0; axis < 3; axis++) {
+            if ((childI & (1 << axis)) == 0) {
+                if (!MaxSideVolumeEqual(child, axis, world.voidVolume))
+                    return false;
+            }
+        }
+        return true;
     }
 
     /// <summary>
@@ -548,11 +551,14 @@ public static class CubeEdit {
     /// </summary>
     /// <param name="world">The world to be simplified.</param>
     /// <returns>Equivalent simplified version of the world.</returns>
-    public static CubeWorld Simplify(CubeWorld world, out CubePos newRootPos, out int shrinkDepth) {
-        var voidLeaf = new Cube.Leaf(world.voidVolume).Immut();
-        world.root = SimplifyCube(world.root, (voidLeaf, voidLeaf, voidLeaf));
-        world = ShrinkWorld(world, out newRootPos, out shrinkDepth);
-        return world;
+    public static Immut<CubeWorld> Simplify(Immut<CubeWorld> world) {
+        CubeWorld w = world.Val;
+        var voidLeaf = new Cube.Leaf(w.voidVolume).Immut();
+        bool modified = false;
+        w.root = Util.AssignChanged(w.root, SimplifyCube(w.root, (voidLeaf, voidLeaf, voidLeaf)),
+            ref modified);
+        if (modified) world = Immut.Create(w);
+        return ShrinkWorld(world);
     }
 
     /// <summary>

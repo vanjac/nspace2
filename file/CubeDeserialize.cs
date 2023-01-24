@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using objnum = System.UInt16;
 
 public class CubeDeserialize {
+    private uint writerVersion;
     private Dictionary<FileConst.Type, FileObj.DirEntry> directory;
     private Guid[] guids;
     private Immut<Cube.Face>[] faces;
@@ -23,10 +24,18 @@ public class CubeDeserialize {
 
     // 12 bytes
     private CubePos DeserializeCubePos(BinaryReader reader) {
-        CubePos p = new CubePos();
+        CubePos p = CubePos.ZERO;
         for (int i = 0; i < 3; i++)
             p[i] = reader.ReadUInt32();
         return p;
+    }
+
+    // 48 bytes
+    private Transform DeserializeTransform(BinaryReader reader) {
+        Transform t = new Transform();
+        for (int i = 0; i < 4; i++)
+            t[i] = DeserializeVector3(reader);
+        return t;
     }
 
     // 16 bytes
@@ -80,12 +89,26 @@ public class CubeDeserialize {
         }
     }
 
-    // 20 bytes
+    // 66 bytes
     private Immut<CubeWorld> DeserializeWorld(BinaryReader reader) {
         CubeWorld world = new CubeWorld();
         world.root = cubes[reader.ReadUInt16()];
-        world.rootPos = DeserializeVector3(reader);
-        world.rootSize = reader.ReadSingle();
+        world.rootDepth = reader.ReadUInt16();
+        world.rootPos = DeserializeCubePos(reader);
+        world.transform = DeserializeTransform(reader);
+        world.voidVolume = guids[reader.ReadUInt16()];
+        return Immut.Create(world);
+    }
+
+    // 20 bytes
+    private Immut<CubeWorld> DeserializeWorldVersion1(BinaryReader reader) {
+        CubeWorld world = new CubeWorld();
+        world.root = cubes[reader.ReadUInt16()];
+        Vector3 rootPos = DeserializeVector3(reader);
+        world.rootPos = CubePos.FromWorldPos(rootPos);
+        float rootSize = reader.ReadSingle();
+        world.rootDepth = CubeWorld.UNIT_DEPTH - (int)Math.Round(Math.Log(rootSize, 2));
+        world.transform = Transform.Identity;
         world.voidVolume = guids[reader.ReadUInt16()];
         return Immut.Create(world);
     }
@@ -105,6 +128,12 @@ public class CubeDeserialize {
         editor.selDir = (selIdx % 2) == 1;
         editor.selMin = DeserializeCubePos(reader);
         editor.selMax = DeserializeCubePos(reader);
+        if (writerVersion < 0x00000002) {
+            CubeWorld w = editor.world.Val;
+            editor.editDepth += w.rootDepth;
+            editor.selMin = (editor.selMin >> w.rootDepth) + w.rootPos;
+            editor.selMax = (editor.selMax >> w.rootDepth) + w.rootPos;
+        }
         return editor;
     }
 
@@ -135,7 +164,7 @@ public class CubeDeserialize {
             byte[] magic = reader.ReadBytes(4);
             if (!System.Linq.Enumerable.SequenceEqual(magic, FileConst.MAGIC))
                 throw new Exception("File format not supported");
-            stream.Position = 8;
+            writerVersion = reader.ReadUInt32();
             uint compatVersion = reader.ReadUInt32();
             if (compatVersion > FileConst.WRITER_VERSION)
                 throw new Exception("File requires a newer version");
@@ -157,7 +186,10 @@ public class CubeDeserialize {
             faces = LoadObjects(reader, FileConst.Type.Face, 10, DeserializeFace);
             leaves = LoadObjects(reader, FileConst.Type.Leaf, 8, DeserializeLeaf);
             cubes = LoadObjects(reader, FileConst.Type.Cube, 0, DeserializeCube);
-            worlds = LoadObjects(reader, FileConst.Type.World, 20, DeserializeWorld);
+            if (writerVersion >= 0x00000002)
+                worlds = LoadObjects(reader, FileConst.Type.World, 66, DeserializeWorld);
+            else
+                worlds = LoadObjects(reader, FileConst.Type.World, 20, DeserializeWorldVersion1);
             EditState[] editors = LoadObjects(reader, FileConst.Type.Editor, 56, DeserializeEditor);
 
             return editors[0]; // TODO don't load others

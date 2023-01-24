@@ -40,39 +40,16 @@ public static class CubeUtil {
     }
 
     /// <summary>
-    /// Find the size of a cube at the given depth in an octree.
+    /// Find the size of a cube at the given depth in the world.
     /// </summary>
-    /// <param name="depth">Depth of the cube in the tree.</param>
-    /// <param name="rootSize">Size of the root node of the tree.</param>
-    /// <returns></returns>
-    public static float CubeSize(int depth, float rootSize = 1.0f) {
+    /// <param name="depth">Depth of the cube in the world.</param>
+    /// <returns>World-space size of cube</returns>
+    public static float WorldCubeSize(int depth) {
+        depth -= CubeWorld.UNIT_DEPTH;
         if (depth >= 0)
-            return rootSize / (1 << depth);
+            return 1f / (1 << depth);
         else
-            return rootSize * (1 << -depth);
-    }
-
-    /// <summary>
-    /// Map a world-space vector to the range (0,0,0) -> (1,1,1), corresponding to the minimum and
-    /// maximum bounds of the world (world.rootPos is the origin). Vectors outside the bounds of the
-    /// world will be outside this range.
-    /// </summary>
-    /// <param name="pos">Vector in world coordinates.</param>
-    /// <param name="world">The world whose root position/size is used to map the vector.</param>
-    /// <returns>Vector representing a fraction of the root cube of the world.</returns>
-    public static Vector3 ToUnitPos(Vector3 pos, CubeWorld world) {
-        return (pos - world.rootPos) / world.rootSize;
-    }
-
-    /// <summary>
-    /// The reverse of ToUnitPos(). Map the range (0,0,0) -> (1,1,1) to the minimum and maximum
-    /// bounds of the world.
-    /// </summary>
-    /// <param name="unit">Vector representing a fraction of the root cube of the world.</param>
-    /// <param name="world">The world whose root position/size is used to map the vector.</param>
-    /// <returns>Vector in world coordinates.</returns>
-    public static Vector3 ToWorldPos(Vector3 unit, CubeWorld world) {
-        return unit * world.rootSize + world.rootPos;
+            return (float)(1 << -depth);
     }
 
     /// <summary>
@@ -80,30 +57,21 @@ public static class CubeUtil {
     /// </summary>
     /// <param name="pos">Raycast collision point (unit position).</param>
     /// <param name="normal">Raycast collision normal.</param>
-    /// <param name="depth">Depth in tree of cubes to select.</param>
+    /// <param name="depth">Depth in world of cubes to select.</param>
+    /// <param name="rootPos">Position of world root cube (for rounding).</param>
     /// <param name="axis">Axis of the face that was selected.</param>
     /// <param name="dir">
     /// True if the selected face's normal is in the positive direction, false if negative.
     /// </param>
-    /// <returns>A point inside the cube that was selected.</returns>
-    public static Vector3 PickFace(Vector3 pos, Vector3 normal, int depth,
+    /// <returns>CubePos in world of the face that was selected.</returns>
+    public static CubePos PickFace(Vector3 pos, Vector3 normal, int depth, CubePos rootPos,
             out int axis, out bool dir) {
         var absNormal = normal.Abs();
         axis = (int)absNormal.MaxAxis();
         dir = normal[axis] >= 0;
         // TODO selecting half size cube??
-        return pos + absNormal.Round() * CubeUtil.CubeSize(depth + 1);
-    }
-
-    /// <summary>
-    /// Transform point in the space of a descendant cube to the space of its ancestor.
-    /// </summary>
-    /// <param name="p">Point in descendant's coordinates.</param>
-    /// <param name="descPos">Position of the descendant cube within the ancestor.</param>
-    /// <param name="depth">Depth of the descendant cube.</param>
-    /// <returns>Point in ancestor's coordinates.</returns>
-    public static Vector3 ToAncestorPos(Vector3 p, CubePos descPos, int depth) {
-        return p / (1 << depth) + descPos.ToUnitPos();
+        return (CubePos.FromWorldPos(pos + absNormal.Round() * CubeUtil.WorldCubeSize(depth + 1))
+            - rootPos).Floor(depth) + rootPos;
     }
 }
 
@@ -113,14 +81,19 @@ public static class CubeUtil {
 /// coordinate and 2^32 (not representable) is the maximum.
 /// </summary>
 public struct CubePos {
-    private const float UNIT = 4294967296.0f; // 2 ^ 32
+    public static readonly CubePos ZERO = CubePos.FromChildIndex(0);
+    public static readonly CubePos HALF = CubePos.FromChildIndex(7);
     private uint x, y, z;
 
     public CubePos(uint x, uint y, uint z) {
         this.x = x; this.y = y; this.z = z;
     }
 
-    public CubePos(Vector3 v) {
+    public CubePos(uint all) {
+        this.x = this.y = this.z = all;
+    }
+
+    private CubePos(Vector3 v) {
         this.x = (uint)(long)v.x; this.y = (uint)(long)v.y; this.z = (uint)(long)v.z;
     }
 
@@ -153,33 +126,64 @@ public struct CubePos {
     }
 
     /// <summary>
+    /// Get the position of a child within the unit cube.
+    /// </summary>
+    /// <param name="i">Child index.</param>
+    /// <returns>Position of the child assuming a depth of 0.</returns>
+    public static CubePos FromChildIndex(int i) {
+        return new CubePos(((uint)i & 1) << 31, ((uint)i & 2) << 30, ((uint)i & 4) << 29);
+    }
+
+    /// <summary>
     /// Build a CubePos by setting a single axis to a value, and all others to 0.
     /// </summary>
     /// <param name="axis">Axis index to be set.</param>
     /// <param name="len">Axis value to set.</param>
     /// <param name="dir">If false, value will be made negative (2's complement).</param>
     /// <returns>A CubePos with a single axis set.</returns>
-    public static CubePos Axis(int axis, uint len = 1, bool dir = true) {
-        CubePos pos = new CubePos(0, 0, 0);
+    public static CubePos FromAxis(int axis, uint len = 1, bool dir = true) {
+        CubePos pos = ZERO;
         pos[axis] = dir ? len : (uint)-len;
         return pos;
     }
 
     /// <summary>
-    /// Build a CubePos from a vector in unit coordinates (0 to 1).
+    /// Convert world-space vector to CubePos. Origin is at CubePos.HALF, and 1 unit is the size of
+    /// a cube with depth CubeWorld.UNIT_DEPTH.
     /// </summary>
-    /// <param name="v">Vector between (0,0,0) and (1,1,1).</param>
-    /// <returns>The vector scaled to the range of CubePos coordinates.</returns>
-    public static CubePos FromUnitPos(Vector3 v) {
-        return new CubePos(v * UNIT);
+    /// <param name="pos">Vector in world space.</param>
+    /// <returns>CubePos in world space.</returns>
+    public static CubePos FromWorldPos(Vector3 pos) {
+        return new CubePos(pos * (1 << (32 - CubeWorld.UNIT_DEPTH))) + CubePos.HALF;
     }
 
     /// <summary>
-    /// Convert to a vector with coordinates in the range 0 to 1.
+    /// Convert to world-space vector. Reverse of FromWorldPos().
     /// </summary>
-    /// <returns>Vector between (0,0,0) and (1,1,1).</returns>
-    public readonly Vector3 ToUnitPos() {
-        return new Vector3(x, y, z) / UNIT;
+    /// <returns>Vector in world space.</returns>
+    public readonly Vector3 ToWorldPos() {
+        return (this - CubePos.HALF).ToWorldSize();
+    }
+
+    /// <summary>
+    /// Convert signed box dimensions (measured from 0) to world space vector.
+    /// </summary>
+    /// <returns>Box dimensions in world space.</returns>
+    public readonly Vector3 ToWorldSize() {
+        return ToVector3Signed() / (1 << (32 - CubeWorld.UNIT_DEPTH));
+    }
+
+    private readonly Vector3 ToVector3Signed() {
+        return new Vector3((int)x, (int)y, (int)z);
+    }
+
+    /// <summary>
+    /// Convert world-space cube position to root space.
+    /// </summary>
+    /// <param name="world">World to use for transformation</param>
+    /// <returns>Cube position in root coordinates</returns>
+    public readonly CubePos ToRoot(CubeWorld world) {
+        return (this - world.rootPos) << world.rootDepth;
     }
 
     /// <summary>
@@ -189,9 +193,8 @@ public struct CubePos {
     /// <returns>CubePos where each coordinate is some multiple of CubeSize(depth).</returns>
     public readonly CubePos Floor(int depth) {
         if (depth <= 0)
-            return new CubePos();
-        uint mask = ~0u << (32 - depth);
-        return new CubePos(x & mask, y & mask, z & mask);
+            return ZERO;
+        return this & new CubePos(~0u << (32 - depth));
     }
 
     /// <summary>
@@ -203,44 +206,16 @@ public struct CubePos {
     }
 
     /// <summary>
-    /// Transform point in the space of a parent cube to the space of one of its children
-    /// (whichever child contains the point, given by ChildIndex()).
+    /// Check if the point is inside a cube. (Inclusive of minimum boundary, exclusive of maximum).
     /// </summary>
-    /// <returns>CubePos in child's coordinates.</returns>
-    public readonly CubePos ToChild() {
-        return ToDescendant(1);
-    }
-
-    /// <summary>
-    /// Transform point in the space of an ancestor cube to the space of one of its descendants.
-    /// </summary>
-    /// <param name="depth">Depth of the descendant cube.</param>
-    /// <returns>CubePos in descendant's coordinates.</returns>
-    public readonly CubePos ToDescendant(int depth) {
-        return new CubePos(x << depth, y << depth, z << depth);
-    }
-
-    /// <summary>
-    /// Transform point in the space of a child cube to the space of its parent.
-    /// </summary>
-    /// <param name="childI">Index of the child in the parent branch.</param>
-    /// <returns>CubePos in parent's coordinates.</returns>
-    public readonly CubePos ToParent(int childI) {
-        return new CubePos(
-            (x >> 1) | (((uint)childI & 1) << 31),
-            (y >> 1) | (((uint)childI & 2) << 30),
-            (z >> 1) | (((uint)childI & 4) << 29));
-    }
-
-    /// <summary>
-    /// Transform point in the space of a descendant cube to the space of its ancenstor.
-    /// See also CubeUtil.ToAncestorPos().
-    /// </summary>
-    /// <param name="descPos">Position of the descendant cube within the ancestor.</param>
-    /// <param name="depth">Depth of the descendant cube.</param>
-    /// <returns>CubePos in ancestor's coordinates.</returns>
-    public readonly CubePos ToAncestor(CubePos descPos, int depth) {
-        return new CubePos(x >> depth, y >> depth, z >> depth) + descPos;
+    /// <param name="origin">Minimum position of the cube.</param>
+    /// <param name="depth">Depth of the cube (size found by CubeSize(depth)).</param>
+    /// <returns>true if the point is inside the cube.</returns>
+    public readonly bool InCube(CubePos origin, int depth) {
+        uint size = CubeSize(depth);
+        return x >= origin.x && x < origin.x + size
+            && y >= origin.y && y < origin.y + size
+            && z >= origin.z && z < origin.z + size;
     }
 
     public readonly override string ToString() {
@@ -251,4 +226,12 @@ public struct CubePos {
         => new CubePos(a.x + b.x, a.y + b.y, a.z + b.z);
     public static CubePos operator -(CubePos a, CubePos b)
         => new CubePos(a.x - b.x, a.y - b.y, a.z - b.z);
+    public static CubePos operator |(CubePos a, CubePos b)
+        => new CubePos(a.x | b.x, a.y | b.y, a.z | b.z);
+    public static CubePos operator &(CubePos a, CubePos b)
+        => new CubePos(a.x & b.x, a.y & b.y, a.z & b.z);
+    public static CubePos operator >>(CubePos a, int b)
+        => new CubePos(a.x >> b, a.y >> b, a.z >> b);
+    public static CubePos operator <<(CubePos a, int b)
+        => new CubePos(a.x << b, a.y << b, a.z << b);
 }

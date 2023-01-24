@@ -7,6 +7,7 @@ public enum SelectMode {
 public struct EditState {
     public Immut<CubeWorld> world;
     public int editDepth;
+    public int RootEditDepth => editDepth - world.Val.rootDepth;
 
     public Vector3 camFocus;
     public float camYaw, camPitch, camZoom;

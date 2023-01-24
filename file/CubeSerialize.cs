@@ -45,6 +45,12 @@ public class CubeSerialize {
             writer.Write(p[i]);
     }
 
+    // 48 bytes
+    private void Serialize(BinaryWriter writer, Transform t) {
+        for (int i = 0; i < 4; i++)
+            Serialize(writer, t[i]);
+    }
+
     private objnum Cached(Guid guid) {
         return guidCache.CacheIndex(guid);
     }
@@ -124,12 +130,13 @@ public class CubeSerialize {
         }
     }
 
-    // 20 bytes
+    // 66 bytes
     private void Serialize(BinaryWriter writer, Immut<CubeWorld> world) {
         var val = world.Val;
         writer.Write(Cached(val.root));
+        writer.Write((ushort)val.rootDepth);
         Serialize(writer, val.rootPos);
-        writer.Write(val.rootSize);
+        Serialize(writer, val.transform);
         writer.Write(Cached(val.voidVolume));
     }
 
@@ -190,7 +197,7 @@ public class CubeSerialize {
             directory[5] = MakeDirEntry(stream, FileConst.Type.Editor, 1, 56);
             Serialize(writer, editor);
 
-            directory[4] = MakeDirEntry(stream, FileConst.Type.World, worldCache.objects.Count, 20);
+            directory[4] = MakeDirEntry(stream, FileConst.Type.World, worldCache.objects.Count, 66);
             foreach (var world in worldCache.objects)
                 Serialize(writer, world);
 
