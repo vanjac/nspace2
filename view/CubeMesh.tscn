@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=2]
 
-[ext_resource path="res://assets/grid.png" type="Texture" id=1]
+[ext_resource path="res://view/grid.png" type="Texture" id=1]
 [ext_resource path="res://view/CubeMesh.cs" type="Script" id=2]
 [ext_resource path="res://view/shadow_back_mat.tres" type="Material" id=3]
 [ext_resource path="res://view/shadow_front_mat.tres" type="Material" id=4]

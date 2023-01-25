@@ -2,15 +2,15 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/shadow_curve.png-78a1c407cdd04eb65d3cc7bed7d7a36a.stex"
+path="res://.import/shadow_curve.png-6ab1f58ea518d2ddb8aa9caafa885722.stex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/shadow_curve.png"
-dest_files=[ "res://.import/shadow_curve.png-78a1c407cdd04eb65d3cc7bed7d7a36a.stex" ]
+source_file="res://view/shadow_curve.png"
+dest_files=[ "res://.import/shadow_curve.png-6ab1f58ea518d2ddb8aa9caafa885722.stex" ]
 
 [params]
 
