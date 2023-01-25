@@ -22,7 +22,7 @@ public class TouchController : Node {
     [Signal] delegate void CameraRotate(float yaw, float pitch);
     [Signal] delegate void CameraPan(Vector3 move); // not yet scaled by zoom factor
 
-    [NodeRef("RayCast")] private RayCast nRayCast;
+    [NodeRef("RayCast")] private RayCast nRayCast = null;
     private Camera nCamera;
 
     private Dictionary<int, Vector2> touchPositions = new Dictionary<int, Vector2>();

@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 
 public class CubeMesh : Spatial {
-    [NodeRef("Grid")] private MeshInstance nGrid;
+    [NodeRef("Grid")] private MeshInstance nGrid = null;
     private ArrayMesh mesh = new ArrayMesh();
     private ArrayMesh shadowMesh = new ArrayMesh();
     private ArrayMesh edgeMesh = new ArrayMesh();

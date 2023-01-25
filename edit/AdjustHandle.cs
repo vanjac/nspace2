@@ -2,6 +2,8 @@ using Godot;
 using System;
 
 public class AdjustHandle : Spatial {
+    private const float SCALE = 0.25f;
+
     [Export] public Material material;
 
     [Signal] delegate void AdjustStart();
@@ -10,11 +12,10 @@ public class AdjustHandle : Spatial {
 
     public float snap = 1;
 
-    [NodeRef("Line")] private Spatial nLine;
-    [NodeRef("Handle")] private StaticBody nHandle;
-    [NodeRef("Handle/CollisionShape")] private CollisionShape nHandleShape;
-    private const float SCALE = 0.25f;
-    private Camera camera;
+    [NodeRef("Line")] private Spatial nLine = null;
+    [NodeRef("Handle")] private StaticBody nHandle = null;
+    [NodeRef("Handle/CollisionShape")] private CollisionShape nHandleShape = null;
+    private Camera nCamera;
     private float startDist, dist;
 
     public bool Enabled {
@@ -29,12 +30,12 @@ public class AdjustHandle : Spatial {
         NodeRefAttribute.GetAllNodes(this);
         nLine.GetNode<MeshInstance>("MeshInstance").MaterialOverride = material;
         nHandle.GetNode<MeshInstance>("MeshInstance").MaterialOverride = material;
-        camera = GetViewport().GetCamera();
+        nCamera = GetViewport().GetCamera();
     }
 
     public void Update() {
         Vector3 globalOrigin = GlobalTranslation + dist * GlobalTransform.basis.z.Normalized();
-        Scale = GDUtil.DistanceToCamera(camera, globalOrigin) * Vector3.One * SCALE;
+        Scale = GDUtil.DistanceToCamera(nCamera, globalOrigin) * Vector3.One * SCALE;
 
         float scaledDist = 1 + dist / GlobalTransform.basis.z.Length();
         nLine.Scale = new Vector3(1, 1, scaledDist);
@@ -42,15 +43,15 @@ public class AdjustHandle : Spatial {
     }
 
     private float DistAlongLine(Vector2 touchPos) {
-        var screenOrigin = camera.UnprojectPosition(GlobalTranslation);
+        var screenOrigin = nCamera.UnprojectPosition(GlobalTranslation);
         var dir = GlobalTransform.basis.z.Normalized();
-        var screenDir = camera.UnprojectPosition(GlobalTranslation + dir * 0.1f) - screenOrigin;
+        var screenDir = nCamera.UnprojectPosition(GlobalTranslation + dir * 0.1f) - screenOrigin;
         if (screenDir.LengthSquared() == 0)
             return 0;
         var dist = (touchPos - screenOrigin).Dot(screenDir) / screenDir.LengthSquared();
         var posAlongLine = screenOrigin + dist * screenDir;
 
-        var (rayOrigin, rayDir) = GDUtil.ProjectRayClipped(camera, posAlongLine);
+        var (rayOrigin, rayDir) = GDUtil.ProjectRayClipped(nCamera, posAlongLine);
 
         // https://math.stackexchange.com/a/3436386
         // see also: https://stackoverflow.com/q/2316490/11525734
@@ -77,7 +78,9 @@ public class AdjustHandle : Spatial {
             int units = dist >= 0 ? Mathf.FloorToInt(dist / snap) : Mathf.CeilToInt(dist / snap);
             EmitSignal(nameof(Adjust), units); // should move position!
             dist -= units * snap;
+#if GODOT_MOBILE
             Input.VibrateHandheld(1);
+#endif
         }
         Update();
     }
