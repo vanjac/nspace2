@@ -1,0 +1,109 @@
+[gd_scene load_steps=16 format=2]
+
+[ext_resource path="res://edit/highlight.tres" type="Material" id=13]
+[ext_resource path="res://edit/DebugCube.tscn" type="PackedScene" id=14]
+[ext_resource path="res://edit/TouchController.tscn" type="PackedScene" id=28]
+[ext_resource path="res://view/CubeMesh.tscn" type="PackedScene" id=63]
+[ext_resource path="res://edit/Editor.cs" type="Script" id=64]
+[ext_resource path="res://edit/EditorCamera.tscn" type="PackedScene" id=65]
+[ext_resource path="res://edit/AdjustHandle.tscn" type="PackedScene" id=66]
+[ext_resource path="res://edit/EditorGUI.tscn" type="PackedScene" id=69]
+[ext_resource path="res://assets/BuiltIn.tscn" type="PackedScene" id=79]
+
+[sub_resource type="SpatialMaterial" id=30]
+render_priority = 5
+flags_unshaded = true
+flags_no_depth_test = true
+
+[sub_resource type="SpatialMaterial" id=22]
+render_priority = 5
+flags_unshaded = true
+flags_no_depth_test = true
+albedo_color = Color( 1, 0, 0, 1 )
+
+[sub_resource type="SpatialMaterial" id=23]
+render_priority = 5
+flags_unshaded = true
+flags_no_depth_test = true
+albedo_color = Color( 0, 1, 0, 1 )
+
+[sub_resource type="SpatialMaterial" id=24]
+render_priority = 5
+flags_unshaded = true
+flags_no_depth_test = true
+albedo_color = Color( 0, 0, 1, 1 )
+
+[sub_resource type="QuadMesh" id=3]
+
+[sub_resource type="CubeMesh" id=13]
+
+[node name="Spatial" type="Spatial"]
+
+[node name="Editor" type="Spatial" parent="."]
+script = ExtResource( 64 )
+
+[node name="BuiltIn" parent="Editor" instance=ExtResource( 79 )]
+
+[node name="EditorCamera" parent="Editor" instance=ExtResource( 65 )]
+
+[node name="CubeMesh" parent="Editor" instance=ExtResource( 63 )]
+
+[node name="TouchController" parent="Editor" instance=ExtResource( 28 )]
+
+[node name="ExtrudeAdjust" parent="Editor" instance=ExtResource( 66 )]
+material = SubResource( 30 )
+
+[node name="MoveAdjust" type="Spatial" parent="Editor"]
+
+[node name="X" parent="Editor/MoveAdjust" instance=ExtResource( 66 )]
+transform = Transform( -4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 0, 0 )
+material = SubResource( 22 )
+
+[node name="Y" parent="Editor/MoveAdjust" instance=ExtResource( 66 )]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0 )
+material = SubResource( 23 )
+
+[node name="Z" parent="Editor/MoveAdjust" instance=ExtResource( 66 )]
+material = SubResource( 24 )
+
+[node name="RectSelection" type="Spatial" parent="Editor"]
+visible = false
+
+[node name="MeshInstance" type="MeshInstance" parent="Editor/RectSelection"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0.5, 0 )
+mesh = SubResource( 3 )
+skeleton = NodePath("../..")
+material/0 = ExtResource( 13 )
+
+[node name="BoxSelection" type="Spatial" parent="Editor"]
+visible = false
+
+[node name="MeshInstance" type="MeshInstance" parent="Editor/BoxSelection"]
+transform = Transform( 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0.5, 0.5, 0.5 )
+mesh = SubResource( 13 )
+skeleton = NodePath("../..")
+material/0 = ExtResource( 13 )
+
+[node name="PerfTimer" type="Timer" parent="Editor"]
+autostart = true
+
+[node name="DebugCube" parent="Editor" instance=ExtResource( 14 )]
+
+[node name="EditorGUI" parent="." instance=ExtResource( 69 )]
+
+[connection signal="CameraPan" from="Editor/TouchController" to="Editor" method="_OnCameraPan"]
+[connection signal="CameraRefocus" from="Editor/TouchController" to="Editor" method="_OnCameraRefocus"]
+[connection signal="CameraRotate" from="Editor/TouchController" to="Editor" method="_OnCameraRotate"]
+[connection signal="CameraZoom" from="Editor/TouchController" to="Editor" method="_OnCameraZoom"]
+[connection signal="SelectClear" from="Editor/TouchController" to="Editor" method="_OnSelectClear"]
+[connection signal="SelectDrag" from="Editor/TouchController" to="Editor" method="_OnSelectDrag"]
+[connection signal="SelectStart" from="Editor/TouchController" to="Editor" method="_OnSelectStart"]
+[connection signal="Adjust" from="Editor/ExtrudeAdjust" to="Editor" method="_OnExtrudeAdjust"]
+[connection signal="AdjustEnd" from="Editor/ExtrudeAdjust" to="Editor" method="_OnAdjustEnd"]
+[connection signal="Adjust" from="Editor/MoveAdjust/X" to="Editor" method="_OnMoveAdjust" binds= [ 0 ]]
+[connection signal="AdjustEnd" from="Editor/MoveAdjust/X" to="Editor" method="_OnAdjustEnd"]
+[connection signal="Adjust" from="Editor/MoveAdjust/Y" to="Editor" method="_OnMoveAdjust" binds= [ 1 ]]
+[connection signal="AdjustEnd" from="Editor/MoveAdjust/Y" to="Editor" method="_OnAdjustEnd"]
+[connection signal="Adjust" from="Editor/MoveAdjust/Z" to="Editor" method="_OnMoveAdjust" binds= [ 2 ]]
+[connection signal="AdjustEnd" from="Editor/MoveAdjust/Z" to="Editor" method="_OnAdjustEnd"]
+[connection signal="timeout" from="Editor/PerfTimer" to="Editor" method="_OnUpdatePerf"]

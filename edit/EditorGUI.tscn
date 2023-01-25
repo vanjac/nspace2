@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=2]
+[gd_scene load_steps=12 format=2]
 
 [ext_resource path="res://edit/EditorGUI.cs" type="Script" id=1]
 
@@ -29,6 +29,14 @@ scancode = 89
 
 [sub_resource type="ShortCut" id=21]
 shortcut = SubResource( 20 )
+
+[sub_resource type="InputEventKey" id=22]
+control = true
+command = true
+scancode = 83
+
+[sub_resource type="ShortCut" id=23]
+shortcut = SubResource( 22 )
 
 [node name="EditorGUI" type="CanvasLayer"]
 script = ExtResource( 1 )
@@ -95,6 +103,7 @@ text = "Redo"
 margin_left = 268.0
 margin_right = 309.0
 margin_bottom = 40.0
+shortcut = SubResource( 23 )
 text = "Save"
 
 [node name="File" type="MenuButton" parent="Toolbar"]

@@ -1,0 +1,10 @@
+[gd_scene format=2]
+
+[node name="Button" type="Button"]
+margin_right = 12.0
+margin_bottom = 70.0
+rect_min_size = Vector2( 0, 70 )
+mouse_filter = 1
+size_flags_horizontal = 3
+icon_align = 1
+expand_icon = true
