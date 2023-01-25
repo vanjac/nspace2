@@ -56,13 +56,6 @@ public interface Cube {
         public LeafImmut Immut() => new LeafImmut(this);
     }
 
-    public struct SplitLeaf {
-        public Guid volume2;
-        public Shape shape; // shape of volume2
-        public byte orientation; // see Godot.GridMap
-        public Face splitFace;
-    }
-
     public struct Face {
         public static readonly Immut<Face> DEFAULT = Immut.Create(new Face {
             base_ = new Layer { material = CubeMaterial.DEFAULT_BASE },
@@ -76,6 +69,13 @@ public interface Cube {
         public Guid material;
         public byte orientation;
         public byte uOffset, vOffset;
+    }
+
+    public struct SplitLeaf {
+        public Guid volume2;
+        public Shape shape; // shape of volume2
+        public byte orientation; // see Godot.GridMap
+        public Face splitFace;
     }
 
     public enum Shape : byte {
