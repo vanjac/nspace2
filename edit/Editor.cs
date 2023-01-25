@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using GDArray = Godot.Collections.Array;
 
 public class Editor : Spatial {
 
@@ -47,14 +48,14 @@ public class Editor : Spatial {
         nGUI.nSave.Connect("pressed", this, nameof(_OnSavePressed));
         nGUI.nFilePopup.Connect("id_pressed", this, nameof(_OnFileMenuItemPressed));
         nGUI.nViewPopup.Connect("id_pressed", this, nameof(_OnViewMenuItemPressed),
-            new Godot.Collections.Array { nGUI.nViewPopup });
+            new GDArray { nGUI.nViewPopup });
         nGUI.nTabContainer.Connect("tab_changed", this, nameof(_OnTabChanged));
         nGUI.nEmptyVolume.Connect("pressed", this, nameof(_OnVolumeButtonPressed),
-            new Godot.Collections.Array { VOLUME_EMPTY.ToString() });
+            new GDArray { VOLUME_EMPTY.ToString() });
         nGUI.nSolidVolume.Connect("pressed", this, nameof(_OnVolumeButtonPressed),
-            new Godot.Collections.Array { Volume.SOLID.ToString() });
+            new GDArray { Volume.SOLID.ToString() });
         nGUI.nFluidVolume.Connect("pressed", this, nameof(_OnVolumeButtonPressed),
-            new Godot.Collections.Array { "39c2ca46-e6ce-4e0c-b851-295a7a5921b2" });
+            new GDArray { "39c2ca46-e6ce-4e0c-b851-295a7a5921b2" });
         nGUI.nCopy.Connect("pressed", this, nameof(_OnCopyPressed));
         nGUI.nPaste.Connect("pressed", this, nameof(_OnPastePressed));
         nGUI.nSaveDialog.Connect("file_selected", this, nameof(_OnSaveFileSelected));
@@ -84,8 +85,7 @@ public class Editor : Spatial {
 
             var instance = matButtonScene.Instance<Button>();
             instance.Icon = texture;
-            instance.Connect("pressed", this, nameof(_OnBaseMatButtonPressed),
-                new Godot.Collections.Array { i });
+            instance.Connect("pressed", this, nameof(_OnBaseMatButtonPressed), new GDArray { i });
             nGUI.nMaterialsGrid.AddChild(instance);
         }
 
