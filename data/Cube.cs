@@ -58,7 +58,7 @@ public interface Cube {
 
     public struct SplitLeaf {
         public Guid volume2;
-        public Shape shape;
+        public Shape shape; // shape of volume2
         public byte orientation; // see Godot.GridMap
         public Face splitFace;
     }
@@ -78,8 +78,9 @@ public interface Cube {
         public byte uOffset, vOffset;
     }
 
-    public enum Shape {
-        Cube
+    public enum Shape : byte {
+        Empty, Cube, // SplitLeaves with these shapes should be removed!
+        FlatEdge, FlatCorner, FlatVertex // wedge, quarter-pyramid, tetrahedron
     }
 }
 

@@ -235,3 +235,17 @@ public struct CubePos {
     public static CubePos operator <<(CubePos a, int b)
         => new CubePos(a.x << b, a.y << b, a.z << b);
 }
+
+public readonly struct FaceProfile {
+    public enum Shape {
+        Empty, Square, Triangle
+    }
+    public readonly Shape shape;
+    public readonly int orientation; // 0-3
+    public FaceProfile(Shape shape, int orientation) {
+        if (shape == Shape.Empty || shape == Shape.Square)
+            orientation = 0;
+        this.shape = shape;
+        this.orientation = orientation;
+    }
+}
