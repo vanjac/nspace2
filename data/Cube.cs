@@ -75,7 +75,7 @@ public interface Cube {
         public Guid volume2;
         public Shape shape; // shape of volume2
         public byte orientation; // see Godot.GridMap
-        public Face splitFace;
+        public Immut<Face> splitFace;
     }
 
     public enum Shape : byte {
