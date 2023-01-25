@@ -1,0 +1,245 @@
+[gd_scene load_steps=10 format=2]
+
+[ext_resource path="res://edit/EditorGUI.cs" type="Script" id=1]
+
+[sub_resource type="InputEventKey" id=14]
+scancode = 91
+
+[sub_resource type="ShortCut" id=15]
+shortcut = SubResource( 14 )
+
+[sub_resource type="InputEventKey" id=16]
+scancode = 93
+
+[sub_resource type="ShortCut" id=17]
+shortcut = SubResource( 16 )
+
+[sub_resource type="InputEventKey" id=18]
+control = true
+command = true
+scancode = 90
+
+[sub_resource type="ShortCut" id=19]
+shortcut = SubResource( 18 )
+
+[sub_resource type="InputEventKey" id=20]
+control = true
+command = true
+scancode = 89
+
+[sub_resource type="ShortCut" id=21]
+shortcut = SubResource( 20 )
+
+[node name="EditorGUI" type="CanvasLayer"]
+script = ExtResource( 1 )
+
+[node name="Toolbar" type="HBoxContainer" parent="."]
+anchor_right = 1.0
+margin_left = 170.0
+margin_bottom = 40.0
+
+[node name="AddSelect" type="Button" parent="Toolbar"]
+margin_right = 37.0
+margin_bottom = 40.0
+toggle_mode = true
+text = "Add"
+
+[node name="Grid" type="PanelContainer" parent="Toolbar"]
+margin_left = 41.0
+margin_right = 166.0
+margin_bottom = 40.0
+
+[node name="HBox" type="HBoxContainer" parent="Toolbar/Grid"]
+margin_left = 7.0
+margin_top = 7.0
+margin_right = 118.0
+margin_bottom = 33.0
+
+[node name="Half" type="Button" parent="Toolbar/Grid/HBox"]
+margin_right = 25.0
+margin_bottom = 26.0
+shortcut = SubResource( 15 )
+text = "/2"
+
+[node name="Size" type="Label" parent="Toolbar/Grid/HBox"]
+margin_left = 29.0
+margin_top = 6.0
+margin_right = 79.0
+margin_bottom = 20.0
+rect_min_size = Vector2( 50, 0 )
+text = "1"
+align = 1
+
+[node name="Double" type="Button" parent="Toolbar/Grid/HBox"]
+margin_left = 83.0
+margin_right = 111.0
+margin_bottom = 26.0
+shortcut = SubResource( 17 )
+text = "*2"
+
+[node name="Undo" type="Button" parent="Toolbar"]
+margin_left = 170.0
+margin_right = 216.0
+margin_bottom = 40.0
+shortcut = SubResource( 19 )
+text = "Undo"
+
+[node name="Redo" type="Button" parent="Toolbar"]
+margin_left = 220.0
+margin_right = 264.0
+margin_bottom = 40.0
+shortcut = SubResource( 21 )
+text = "Redo"
+
+[node name="Save" type="Button" parent="Toolbar"]
+margin_left = 268.0
+margin_right = 309.0
+margin_bottom = 40.0
+text = "Save"
+
+[node name="File" type="MenuButton" parent="Toolbar"]
+margin_left = 313.0
+margin_right = 348.0
+margin_bottom = 40.0
+focus_mode = 2
+text = "File"
+flat = false
+items = [ "New Indoor", null, 0, false, false, 0, 0, null, "", false, "New Outdoor", null, 0, false, false, 1, 0, null, "", false, "Open...", null, 0, false, false, 2, 0, null, "", false, "Save as...", null, 0, false, false, 3, 0, null, "", false, "Delete...", null, 0, false, false, 4, 0, null, "", false, "Simplify", null, 0, false, false, 5, 0, null, "", false ]
+
+[node name="View" type="MenuButton" parent="Toolbar"]
+margin_left = 352.0
+margin_right = 394.0
+margin_bottom = 40.0
+focus_mode = 2
+text = "View"
+flat = false
+items = [ "Faces", null, 1, true, false, 0, 0, null, "", false, "Edge shadows", null, 1, true, false, 1, 0, null, "", false, "Grid", null, 1, false, false, 2, 0, null, "", false, "Edges", null, 1, false, false, 3, 0, null, "", false, "Leaves", null, 1, false, false, 4, 0, null, "", false ]
+
+[node name="Stats" type="PanelContainer" parent="Toolbar"]
+margin_left = 398.0
+margin_right = 412.0
+margin_bottom = 40.0
+
+[node name="Label" type="Label" parent="Toolbar/Stats"]
+margin_left = 7.0
+margin_top = 13.0
+margin_right = 7.0
+margin_bottom = 27.0
+
+[node name="Perf" type="PanelContainer" parent="Toolbar"]
+margin_left = 416.0
+margin_right = 430.0
+margin_bottom = 40.0
+
+[node name="Label" type="Label" parent="Toolbar/Perf"]
+margin_left = 7.0
+margin_top = 13.0
+margin_right = 7.0
+margin_bottom = 27.0
+
+[node name="LeftPanel" type="VBoxContainer" parent="."]
+anchor_bottom = 1.0
+margin_right = 160.0
+
+[node name="TabContainer" type="TabContainer" parent="LeftPanel"]
+modulate = Color( 1, 1, 1, 0.784314 )
+margin_right = 160.0
+margin_bottom = 36.0
+
+[node name="Faces" type="Control" parent="LeftPanel/TabContainer"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 4.0
+margin_top = 32.0
+margin_right = -4.0
+margin_bottom = -4.0
+
+[node name="Cubes" type="VBoxContainer" parent="LeftPanel/TabContainer"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 4.0
+margin_top = 32.0
+margin_right = -4.0
+margin_bottom = -4.0
+
+[node name="Volumes" type="HBoxContainer" parent="LeftPanel/TabContainer/Cubes"]
+margin_right = 152.0
+margin_bottom = 40.0
+rect_min_size = Vector2( 0, 40 )
+
+[node name="Empty" type="Button" parent="LeftPanel/TabContainer/Cubes/Volumes"]
+margin_right = 52.0
+margin_bottom = 40.0
+size_flags_horizontal = 3
+text = "Empty"
+
+[node name="Solid" type="Button" parent="LeftPanel/TabContainer/Cubes/Volumes"]
+margin_left = 56.0
+margin_right = 102.0
+margin_bottom = 40.0
+size_flags_horizontal = 3
+text = "Solid"
+
+[node name="Fluid" type="Button" parent="LeftPanel/TabContainer/Cubes/Volumes"]
+margin_left = 106.0
+margin_right = 152.0
+margin_bottom = 40.0
+size_flags_horizontal = 3
+text = "Fluid"
+
+[node name="Move" type="Button" parent="LeftPanel/TabContainer/Cubes"]
+margin_top = 44.0
+margin_right = 152.0
+margin_bottom = 64.0
+toggle_mode = true
+pressed = true
+text = "Move"
+
+[node name="Copy" type="Button" parent="LeftPanel/TabContainer/Cubes"]
+margin_top = 68.0
+margin_right = 152.0
+margin_bottom = 88.0
+text = "Copy"
+
+[node name="Paste" type="Button" parent="LeftPanel/TabContainer/Cubes"]
+margin_top = 92.0
+margin_right = 152.0
+margin_bottom = 112.0
+text = "Paste"
+
+[node name="Materials" type="ScrollContainer" parent="LeftPanel"]
+margin_top = 40.0
+margin_right = 160.0
+margin_bottom = 360.0
+size_flags_vertical = 3
+
+[node name="Grid" type="GridContainer" parent="LeftPanel/Materials"]
+margin_right = 160.0
+size_flags_horizontal = 3
+columns = 2
+
+[node name="SaveDialog" type="FileDialog" parent="."]
+margin_right = 400.0
+margin_bottom = 250.0
+rect_min_size = Vector2( 250, 87.5 )
+access = 1
+filters = PoolStringArray( "*.nspace" )
+
+[node name="OpenDialog" type="FileDialog" parent="."]
+margin_right = 400.0
+margin_bottom = 250.0
+rect_min_size = Vector2( 250, 87.5 )
+window_title = "Open a File"
+mode = 0
+access = 1
+filters = PoolStringArray( "*.nspace" )
+
+[node name="DeleteDialog" type="FileDialog" parent="."]
+margin_right = 400.0
+margin_bottom = 250.0
+rect_min_size = Vector2( 250, 87.5 )
+window_title = "Delete"
+mode_overrides_title = false
+mode = 3
+access = 1
