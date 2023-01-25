@@ -24,6 +24,8 @@ public class Editor : Spatial {
 
     private EditState state;
     private Undoer<EditState> undo = new Undoer<EditState>();
+    private Stack<Immut<CubeWorld>> adjustPos = new Stack<Immut<CubeWorld>>();
+    private Stack<Immut<CubeWorld>> adjustNeg = new Stack<Immut<CubeWorld>>();
     private (string, ulong)? adjustOp;
 
     private CubePos selStartMin, selStartMax;
@@ -236,8 +238,8 @@ public class Editor : Spatial {
         return (oldMin, oldMax);
     }
 
-    private void MoveSelection(int axis, bool dir) {
-        CubePos move = CubePos.FromAxis(axis, CubePos.CubeSize(state.editDepth), dir);
+    private void MoveSelection(int axis, int count, bool dir) {
+        CubePos move = CubePos.FromAxis(axis, CubePos.CubeSize(state.editDepth) * (uint)count, dir);
         state.selMin += move;
         state.selMax += move;
     }
@@ -253,11 +255,10 @@ public class Editor : Spatial {
         return modified;
     }
 
-    private bool Extrude(bool pull) {
+    private bool Extrude(bool dir) {
         if (!state.HasSelection(SelectMode.Faces))
             return false;
         var cubeSize = CubePos.CubeSize(state.editDepth);
-        bool dir = !pull ^ state.selDir;
 
         bool worldModified = false;
         foreach (CubePos facePos in IterateSelectedFaces()) {
@@ -277,7 +278,6 @@ public class Editor : Spatial {
         if (rootModified)
             state.world = Immut.Create(w);
 
-        MoveSelection(state.selAxis, dir);
         return worldModified | rootModified;
     }
 
@@ -307,7 +307,6 @@ public class Editor : Spatial {
         if (rootModified)
             state.world = Immut.Create(w);
 
-        MoveSelection(axis, dir);
         return worldModified | rootModified;
     }
 
@@ -402,7 +401,7 @@ public class Editor : Spatial {
             camZoom = 6f,
         };
         undo.Clear();
-        adjustOp = null;
+        ResetAdjust();
         filePath = null;
         UpdateState(true);
     }
@@ -419,7 +418,7 @@ public class Editor : Spatial {
         }
         GD.Print($"Load took {Time.GetTicksMsec() - startTick}ms");
         undo.Clear();
-        adjustOp = null;
+        ResetAdjust();
         filePath = path;
         UpdateState(true);
     }
@@ -443,6 +442,12 @@ public class Editor : Spatial {
         GD.Print($"{op.name} took {Time.GetTicksMsec() - op.startTick}ms"
             + $" and created {CubeDebug.allocCount} cubes");
         UpdateState(modified);
+    }
+
+    private void ResetAdjust() {
+        adjustOp = null;
+        adjustPos.Clear();
+        adjustNeg.Clear();
     }
 
     /* SIGNAL RECEIVERS */
@@ -497,37 +502,60 @@ public class Editor : Spatial {
     public void _OnExtrudeAdjust(int units) {
         if (adjustOp == null)
             adjustOp = BeginOperation("Extrude");
-        bool modified = false;
-        for (; units > 0; units--)
-            modified |= Extrude(true);
-        for (; units < 0; units++)
-            modified |= Extrude(false);
-        UpdateState(modified);
+        for (; units > 0; units--) {
+            if (adjustNeg.Count != 0) {
+                state.world = adjustNeg.Pop();
+            } else {
+                adjustPos.Push(state.world);
+                Extrude(state.selDir);
+            }
+            MoveSelection(state.selAxis, 1, state.selDir);
+        }
+        for (; units < 0; units++) {
+            if (adjustPos.Count != 0) {
+                state.world = adjustPos.Pop();
+            } else {
+                adjustNeg.Push(state.world);
+                Extrude(!state.selDir);
+            }
+            MoveSelection(state.selAxis, 1, !state.selDir);
+        }
+        UpdateState(true);
     }
 
     public void _OnMoveAdjust(int units, int axis) {
         if (nGUI.MoveEnabled) {
             if (adjustOp == null)
                 adjustOp = BeginOperation("Move");
-            bool modified = false;
-            for (; units > 0; units--)
-                modified |= Move(axis, true);
-            for (; units < 0; units++)
-                modified |= Move(axis, false);
-            UpdateState(modified);
+            for (; units > 0; units--) {
+                if (adjustNeg.Count != 0) {
+                    state.world = adjustNeg.Pop();
+                } else {
+                    adjustPos.Push(state.world);
+                    Move(axis, true);
+                }
+                MoveSelection(axis, 1, true);
+            }
+            for (; units < 0; units++) {
+                if (adjustPos.Count != 0) {
+                    state.world = adjustPos.Pop();
+                } else {
+                    adjustNeg.Push(state.world);
+                    Move(axis, false);
+                }
+                MoveSelection(axis, 1, false);
+            }
+            UpdateState(true);
         } else {
-            for (; units > 0; units--)
-                MoveSelection(axis, true);
-            for (; units < 0; units++)
-                MoveSelection(axis, false);
-            UpdateState(false);
+            MoveSelection(axis, units, true);
+            UpdateState(nGUI.MoveEnabled);
         }
     }
 
     public void _OnAdjustEnd() {
         if (adjustOp != null)
             EndOperation(adjustOp.Value, false);
-        adjustOp = null;
+        ResetAdjust();
     }
 
     // GUI...
