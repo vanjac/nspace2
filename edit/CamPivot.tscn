@@ -1,0 +1,10 @@
+[gd_scene format=2]
+
+[node name="CamPivot" type="Spatial"]
+
+[node name="Pitch" type="Spatial" parent="."]
+
+[node name="Camera" type="Camera" parent="Pitch"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1 )
+near = 0.15
+far = 150.0
