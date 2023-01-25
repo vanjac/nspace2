@@ -12,7 +12,7 @@ _global_script_classes=[ {
 "base": "Resource",
 "class": "AA_MaterialInfo",
 "language": "GDScript",
-"path": "res://edit/AA_MaterialInfo.gd"
+"path": "res://assets/AA_MaterialInfo.gd"
 } ]
 _global_script_class_icons={
 "AA_MaterialInfo": ""
