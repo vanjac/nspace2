@@ -40,17 +40,12 @@ public interface Cube {
         /// </summary>
         public Arr3<Immut<Face>> faces;
 
-        /// <summary>
-        /// Splits the leaf into 2 volumes along some non-axis-aligned boundary.
-        /// Used to create slopes and other geometry that can't be represented as cubes.
-        /// Normally null.
-        /// </summary>
-        public Immut<SplitLeaf> split;
+        public LeafExt ext; // normally null
 
         public Leaf(Guid volume) {
             this.volume = volume;
             faces = (Face.DEFAULT, Face.DEFAULT, Face.DEFAULT);
-            split = null;
+            ext = null;
         }
 
         public LeafImmut Immut() => new LeafImmut(this);
@@ -71,16 +66,38 @@ public interface Cube {
         public byte uOffset, vOffset;
     }
 
+    public interface LeafExt { }
+
+    public class SplitLeafImmut : Immut<SplitLeaf>, LeafExt {
+        public SplitLeafImmut(SplitLeaf val) : base(val) { }
+    }
+
+    public class TileCellImmut : Immut<TileCell>, LeafExt {
+        public TileCellImmut(TileCell val) : base(val) { }
+    }
+
+    /// <summary>
+    /// Splits the leaf into 2 volumes along some non-axis-aligned boundary.
+    /// Used to create slopes and other geometry that can't be represented as cubes.
+    /// </summary>
     public struct SplitLeaf {
         public Guid volume2;
         public Shape shape; // shape of volume2
         public byte orientation; // see Godot.GridMap
         public Immut<Face> splitFace;
+
+        public SplitLeafImmut Immut() => new SplitLeafImmut(this);
     }
 
     public enum Shape : byte {
-        Empty, Cube, // SplitLeaves with these shapes should be removed!
+        Empty, // SplitLeaves with this shape should be removed!
         FlatEdge, FlatCorner, FlatVertex // wedge, quarter-pyramid, tetrahedron
+    }
+
+    public class TileCell {
+        public CubePos pos;
+
+        public TileCellImmut Immut() => new TileCellImmut(this);
     }
 }
 
