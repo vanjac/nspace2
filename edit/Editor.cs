@@ -53,7 +53,7 @@ public class Editor : Spatial {
         nGUI.nEmptyVolume.Connect("pressed", this, nameof(_OnVolumeButtonPressed),
             new GDArray { VOLUME_EMPTY.ToString() });
         nGUI.nSolidVolume.Connect("pressed", this, nameof(_OnVolumeButtonPressed),
-            new GDArray { Volume.SOLID.ToString() });
+            new GDArray { CubeVolume.SOLID.ToString() });
         nGUI.nFluidVolume.Connect("pressed", this, nameof(_OnVolumeButtonPressed),
             new GDArray { "39c2ca46-e6ce-4e0c-b851-295a7a5921b2" });
         nGUI.nCopy.Connect("pressed", this, nameof(_OnCopyPressed));
@@ -92,7 +92,7 @@ public class Editor : Spatial {
         materialGuids[nBuiltIn.baseMaterials.Length] = CubeMaterial.DEFAULT_OVERLAY;
         materialsDict[CubeMaterial.DEFAULT_OVERLAY] = nBuiltIn.defaultOverlay;
 
-        NewWorld(VOLUME_EMPTY, Volume.SOLID);
+        NewWorld(VOLUME_EMPTY, CubeVolume.SOLID);
     }
 
     private void UpdateState(bool updateWorld) {
@@ -619,10 +619,10 @@ public class Editor : Spatial {
     public void _OnFileMenuItemPressed(int id) {
         switch (id) {
             case 0: // new indoor
-                NewWorld(VOLUME_EMPTY, Volume.SOLID);
+                NewWorld(VOLUME_EMPTY, CubeVolume.SOLID);
                 break;
             case 1: // new outdoor
-                NewWorld(Volume.SOLID, VOLUME_EMPTY);
+                NewWorld(CubeVolume.SOLID, VOLUME_EMPTY);
                 break;
             case 2: // open
                 nGUI.ShowOpenDialog();

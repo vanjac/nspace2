@@ -146,7 +146,8 @@ public class CubeMesh : Spatial {
             Vector3 pos, float size, int axis, Dictionary<Guid, SurfaceTool> surfs) {
         if (min.Val.volume == max.Val.volume)
             return 0;
-        bool solidBoundary = min.Val.volume == Volume.SOLID || max.Val.volume == Volume.SOLID;
+        bool solidBoundary = min.Val.volume == CubeVolume.SOLID
+            || max.Val.volume == CubeVolume.SOLID;
         Cube.Face face = max.face(axis).Val;
         Guid material = (solidBoundary ? face.base_ : face.overlay).material;
         if (!surfs.TryGetValue(material, out SurfaceTool st)) {
@@ -154,11 +155,11 @@ public class CubeMesh : Spatial {
             st.Begin(Mesh.PrimitiveType.Triangles);
         }
         int numQuads = 0;
-        if (max.Val.volume != Volume.SOLID) {
+        if (max.Val.volume != CubeVolume.SOLID) {
             AddQuad(st, pos, size, axis, true);
             numQuads++;
         }
-        if (min.Val.volume != Volume.SOLID) {
+        if (min.Val.volume != CubeVolume.SOLID) {
             AddQuad(st, pos, size, axis, false);
             numQuads++;
         }
@@ -188,9 +189,10 @@ public class CubeMesh : Spatial {
             Vector3 pos, float size, int axis, List<Vector3> singleTris, List<Vector3> doubleTris) {
         if (min.Val.volume == max.Val.volume)
             return;
-        bool solidBoundary = min.Val.volume == Volume.SOLID || max.Val.volume == Volume.SOLID;
+        bool solidBoundary = min.Val.volume == CubeVolume.SOLID
+            || max.Val.volume == CubeVolume.SOLID;
         var tris = solidBoundary ? singleTris : doubleTris;
-        var (vS, vT) = FaceTangents(axis, max.Val.volume != Volume.SOLID, size);
+        var (vS, vT) = FaceTangents(axis, max.Val.volume != CubeVolume.SOLID, size);
         tris.AddRange(new Vector3[] { pos, pos + vT, pos + vS + vT, pos, pos + vS + vT, pos + vS });
     }
 
@@ -208,9 +210,9 @@ public class CubeMesh : Spatial {
         for (int i = 0; i < 4; i++) {
             int adj1 = i ^ 1;
             int adj2 = i ^ 2;
-            if (leaves[i].Val.volume != Volume.SOLID
-                    && leaves[adj1].Val.volume == Volume.SOLID
-                    && leaves[adj2].Val.volume == Volume.SOLID
+            if (leaves[i].Val.volume != CubeVolume.SOLID
+                    && leaves[adj1].Val.volume == CubeVolume.SOLID
+                    && leaves[adj2].Val.volume == CubeVolume.SOLID
                     && leaves[i | 1].face((axis + 1) % 3).Val.base_.material != lightMat
                     && leaves[i | 2].face((axis + 2) % 3).Val.base_.material != lightMat) {
                 var vEdge = CubeUtil.IndexVector(1 << axis) * size;
@@ -237,13 +239,14 @@ public class CubeMesh : Spatial {
         int numQuads = 0;
         var lightMat = CubeMaterial.LIGHT;
         for (int i = 0; i < 8; i++) {
-            if (leaves[i].Val.volume == Volume.SOLID && leaves[i ^ 7].Val.volume == Volume.SOLID) {
+            if (leaves[i].Val.volume == CubeVolume.SOLID
+                    && leaves[i ^ 7].Val.volume == CubeVolume.SOLID) {
                 for (int axis = 0; axis < 3; axis++) {
                     int sAxis = (axis + 1) % 3, tAxis = (axis + 2) % 3;
                     int p = 1 << axis, s = 1 << sAxis, t = 1 << tAxis;
-                    if (leaves[i ^ p].Val.volume != Volume.SOLID
-                            && leaves[i ^ p ^ s].Val.volume != Volume.SOLID
-                            && leaves[i ^ p ^ t].Val.volume != Volume.SOLID
+                    if (leaves[i ^ p].Val.volume != CubeVolume.SOLID
+                            && leaves[i ^ p ^ s].Val.volume != CubeVolume.SOLID
+                            && leaves[i ^ p ^ t].Val.volume != CubeVolume.SOLID
                             && leaves[i | p].face(axis).Val.base_.material != lightMat
                             && leaves[(i ^ p ^ s) | t].face(tAxis).Val.base_.material != lightMat
                             && leaves[(i ^ p ^ t) | s].face(sAxis).Val.base_.material != lightMat) {

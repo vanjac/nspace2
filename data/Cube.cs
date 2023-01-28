@@ -107,7 +107,7 @@ public static class CubeMaterial {
     public static readonly Guid LIGHT = new Guid("d97ff6eb-a431-4744-9a8b-af59dd9a269f");
 }
 
-public static class Volume {
+public static class CubeVolume {
     public static readonly Guid SOLID = new Guid("963d3459-35c5-4460-a674-7779799366dc");
 }
 
