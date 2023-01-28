@@ -12,7 +12,7 @@ public class CubeDeserialize {
     private Immut<Cube.Face>[] faces;
     private Cube.LeafImmut[] leaves;
     private Cube[] cubes;
-    private Immut<CubeWorld>[] worlds;
+    private Immut<CubeModel>[] models;
 
     // 12 bytes
     private Vector3 DeserializeVector3(BinaryReader reader) {
@@ -89,34 +89,32 @@ public class CubeDeserialize {
         }
     }
 
-    // 66 bytes
-    private Immut<CubeWorld> DeserializeWorld(BinaryReader reader) {
-        CubeWorld world = new CubeWorld();
-        world.root = cubes[reader.ReadUInt16()];
-        world.rootDepth = reader.ReadUInt16();
-        world.rootPos = DeserializeCubePos(reader);
-        world.transform = DeserializeTransform(reader);
-        world.voidVolume = guids[reader.ReadUInt16()];
-        return Immut.Create(world);
+    // 18 bytes
+    private Immut<CubeModel> DeserializeModel(BinaryReader reader) {
+        CubeModel model = new CubeModel();
+        model.root = cubes[reader.ReadUInt16()];
+        model.rootDepth = reader.ReadUInt16();
+        model.rootPos = DeserializeCubePos(reader);
+        model.voidVolume = guids[reader.ReadUInt16()];
+        return Immut.Create(model);
     }
 
     // 20 bytes
-    private Immut<CubeWorld> DeserializeWorldVersion1(BinaryReader reader) {
-        CubeWorld world = new CubeWorld();
-        world.root = cubes[reader.ReadUInt16()];
+    private Immut<CubeModel> DeserializeModelVersion1(BinaryReader reader) {
+        CubeModel model = new CubeModel();
+        model.root = cubes[reader.ReadUInt16()];
         Vector3 rootPos = DeserializeVector3(reader);
-        world.rootPos = CubePos.FromWorldPos(rootPos);
+        model.rootPos = CubePos.FromModelPos(rootPos);
         float rootSize = reader.ReadSingle();
-        world.rootDepth = CubeWorld.UNIT_DEPTH - (int)Math.Round(Math.Log(rootSize, 2));
-        world.transform = Transform.Identity;
-        world.voidVolume = guids[reader.ReadUInt16()];
-        return Immut.Create(world);
+        model.rootDepth = CubeModel.UNIT_DEPTH - (int)Math.Round(Math.Log(rootSize, 2));
+        model.voidVolume = guids[reader.ReadUInt16()];
+        return Immut.Create(model);
     }
 
     // 56 bytes
     private EditState DeserializeEditor(BinaryReader reader) {
         EditState editor = new EditState();
-        editor.world = worlds[reader.ReadUInt16()];
+        editor.world = models[reader.ReadUInt16()];
         editor.editDepth = reader.ReadUInt16();
         editor.camFocus = DeserializeVector3(reader);
         editor.camYaw = reader.ReadSingle();
@@ -129,10 +127,10 @@ public class CubeDeserialize {
         editor.selMin = DeserializeCubePos(reader);
         editor.selMax = DeserializeCubePos(reader);
         if (writerVersion < 0x00000002) {
-            CubeWorld w = editor.world.Val;
-            editor.editDepth += w.rootDepth;
-            editor.selMin = (editor.selMin >> w.rootDepth) + w.rootPos;
-            editor.selMax = (editor.selMax >> w.rootDepth) + w.rootPos;
+            CubeModel m = editor.world.Val;
+            editor.editDepth += m.rootDepth;
+            editor.selMin = (editor.selMin >> m.rootDepth) + m.rootPos;
+            editor.selMax = (editor.selMax >> m.rootDepth) + m.rootPos;
         }
         return editor;
     }
@@ -187,9 +185,9 @@ public class CubeDeserialize {
             leaves = LoadObjects(reader, FileConst.Type.Leaf, 8, DeserializeLeaf);
             cubes = LoadObjects(reader, FileConst.Type.Cube, 0, DeserializeCube);
             if (writerVersion >= 0x00000002)
-                worlds = LoadObjects(reader, FileConst.Type.World, 66, DeserializeWorld);
+                models = LoadObjects(reader, FileConst.Type.Model, 18, DeserializeModel);
             else
-                worlds = LoadObjects(reader, FileConst.Type.World, 20, DeserializeWorldVersion1);
+                models = LoadObjects(reader, FileConst.Type.Model, 20, DeserializeModelVersion1);
             EditState[] editors = LoadObjects(reader, FileConst.Type.Editor, 56, DeserializeEditor);
 
             return editors[0]; // TODO don't load others

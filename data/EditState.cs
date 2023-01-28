@@ -5,7 +5,7 @@ public enum SelectMode {
 }
 
 public struct EditState {
-    public Immut<CubeWorld> world;
+    public Immut<CubeModel> world;
     public int editDepth;
     public int RootEditDepth => editDepth - world.Val.rootDepth;
 

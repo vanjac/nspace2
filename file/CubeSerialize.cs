@@ -31,7 +31,7 @@ public class CubeSerialize {
     private ObjectCache<FileObj.Face> faceCache = new ObjectCache<FileObj.Face>();
     private ObjectCache<FileObj.Leaf> leafCache = new ObjectCache<FileObj.Leaf>();
     private ObjectCache<Cube> cubeCache = new ObjectCache<Cube>();
-    private ObjectCache<Immut<CubeWorld>> worldCache = new ObjectCache<Immut<CubeWorld>>();
+    private ObjectCache<Immut<CubeModel>> modelCache = new ObjectCache<Immut<CubeModel>>();
 
     // 12 bytes
     private void Serialize(BinaryWriter writer, Vector3 v) {
@@ -114,7 +114,7 @@ public class CubeSerialize {
 
     private void Serialize(BinaryWriter writer, Cube cube, int depth = 0) {
         if (depth > 32)
-            throw new Exception("World is too large or too detailed");
+            throw new Exception("Model is too large or too detailed");
         if (cube is Cube.LeafImmut leaf) {
             if (depth > 0)
                 writer.Write((objnum)(objnum.MaxValue - depth + 1));
@@ -130,18 +130,17 @@ public class CubeSerialize {
         }
     }
 
-    // 66 bytes
-    private void Serialize(BinaryWriter writer, Immut<CubeWorld> world) {
-        var val = world.Val;
+    // 18 bytes
+    private void Serialize(BinaryWriter writer, Immut<CubeModel> model) {
+        var val = model.Val;
         writer.Write(Cached(val.root));
         writer.Write((ushort)val.rootDepth);
         Serialize(writer, val.rootPos);
-        Serialize(writer, val.transform);
         writer.Write(Cached(val.voidVolume));
     }
 
-    private objnum Cached(Immut<CubeWorld> world) {
-        return worldCache.CacheIndex(world);
+    private objnum Cached(Immut<CubeModel> model) {
+        return modelCache.CacheIndex(model);
     }
 
     // 56 bytes
@@ -183,7 +182,7 @@ public class CubeSerialize {
         faceCache.Clear();
         leafCache.Clear();
         cubeCache.Clear();
-        worldCache.Clear();
+        modelCache.Clear();
 
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, true)) {
             writer.Write(FileConst.MAGIC);
@@ -197,9 +196,9 @@ public class CubeSerialize {
             directory[5] = MakeDirEntry(stream, FileConst.Type.Editor, 1, 56);
             Serialize(writer, editor);
 
-            directory[4] = MakeDirEntry(stream, FileConst.Type.World, worldCache.objects.Count, 66);
-            foreach (var world in worldCache.objects)
-                Serialize(writer, world);
+            directory[4] = MakeDirEntry(stream, FileConst.Type.Model, modelCache.objects.Count, 18);
+            foreach (var model in modelCache.objects)
+                Serialize(writer, model);
 
             directory[3] = MakeDirEntry(stream, FileConst.Type.Cube, cubeCache.objects.Count, 0);
             foreach (var cube in cubeCache.objects)

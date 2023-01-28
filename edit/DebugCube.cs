@@ -13,7 +13,7 @@ public class DebugCube : Spatial {
         GD.Print($"{pos}, {depth}");
         Vector3 v = new Vector3(pos[0], pos[1], pos[2]);
         nMesh.Translation = v / (1L << 32);
-        nMesh.Scale = Vector3.One * CubeUtil.WorldCubeSize(depth + CubeWorld.UNIT_DEPTH);
+        nMesh.Scale = Vector3.One * CubeUtil.ModelCubeSize(depth + CubeModel.UNIT_DEPTH);
     }
 
     private void SelectChild(int i) {

@@ -40,12 +40,12 @@ public static class CubeUtil {
     }
 
     /// <summary>
-    /// Find the size of a cube at the given depth in the world.
+    /// Find the size of a cube at the given depth in a CubeModel.
     /// </summary>
-    /// <param name="depth">Depth of the cube in the world.</param>
-    /// <returns>World-space size of cube</returns>
-    public static float WorldCubeSize(int depth) {
-        depth -= CubeWorld.UNIT_DEPTH;
+    /// <param name="depth">Depth of the cube in the model.</param>
+    /// <returns>Model-space size of cube</returns>
+    public static float ModelCubeSize(int depth) {
+        depth -= CubeModel.UNIT_DEPTH;
         if (depth >= 0)
             return 1f / (1 << depth);
         else
@@ -57,20 +57,20 @@ public static class CubeUtil {
     /// </summary>
     /// <param name="pos">Raycast collision point (unit position).</param>
     /// <param name="normal">Raycast collision normal.</param>
-    /// <param name="depth">Depth in world of cubes to select.</param>
-    /// <param name="rootPos">Position of world root cube (for rounding).</param>
+    /// <param name="depth">Depth in model of cubes to select.</param>
+    /// <param name="rootPos">Position of model root cube (for rounding).</param>
     /// <param name="axis">Axis of the face that was selected.</param>
     /// <param name="dir">
     /// True if the selected face's normal is in the positive direction, false if negative.
     /// </param>
-    /// <returns>CubePos in world of the face that was selected.</returns>
+    /// <returns>CubePos in model of the face that was selected.</returns>
     public static CubePos PickFace(Vector3 pos, Vector3 normal, int depth, CubePos rootPos,
             out int axis, out bool dir) {
         var absNormal = normal.Abs();
         axis = (int)absNormal.MaxAxis();
         dir = normal[axis] >= 0;
         // TODO selecting half size cube??
-        return (CubePos.FromWorldPos(pos + absNormal.Round() * CubeUtil.WorldCubeSize(depth + 1))
+        return (CubePos.FromModelPos(pos + absNormal.Round() * CubeUtil.ModelCubeSize(depth + 1))
             - rootPos).Floor(depth) + rootPos;
     }
 }
@@ -148,29 +148,29 @@ public struct CubePos {
     }
 
     /// <summary>
-    /// Convert world-space vector to CubePos. Origin is at CubePos.HALF, and 1 unit is the size of
-    /// a cube with depth CubeWorld.UNIT_DEPTH.
+    /// Convert model-space vector to CubePos. Origin is at CubePos.HALF, and 1 unit is the size of
+    /// a cube with depth CubeModel.UNIT_DEPTH.
     /// </summary>
-    /// <param name="pos">Vector in world space.</param>
-    /// <returns>CubePos in world space.</returns>
-    public static CubePos FromWorldPos(Vector3 pos) {
-        return new CubePos(pos * (1 << (32 - CubeWorld.UNIT_DEPTH))) + CubePos.HALF;
+    /// <param name="pos">Vector in model space.</param>
+    /// <returns>CubePos in model space.</returns>
+    public static CubePos FromModelPos(Vector3 pos) {
+        return new CubePos(pos * (1 << (32 - CubeModel.UNIT_DEPTH))) + CubePos.HALF;
     }
 
     /// <summary>
-    /// Convert to world-space vector. Reverse of FromWorldPos().
+    /// Convert to model-space vector. Reverse of FromModelPos().
     /// </summary>
-    /// <returns>Vector in world space.</returns>
-    public readonly Vector3 ToWorldPos() {
-        return (this - CubePos.HALF).ToWorldSize();
+    /// <returns>Vector in model space.</returns>
+    public readonly Vector3 ToModelPos() {
+        return (this - CubePos.HALF).ToModelSize();
     }
 
     /// <summary>
-    /// Convert signed box dimensions (measured from 0) to world space vector.
+    /// Convert signed box dimensions (measured from 0) to model space vector.
     /// </summary>
-    /// <returns>Box dimensions in world space.</returns>
-    public readonly Vector3 ToWorldSize() {
-        return ToVector3Signed() / (1 << (32 - CubeWorld.UNIT_DEPTH));
+    /// <returns>Box dimensions in model space.</returns>
+    public readonly Vector3 ToModelSize() {
+        return ToVector3Signed() / (1 << (32 - CubeModel.UNIT_DEPTH));
     }
 
     private readonly Vector3 ToVector3Signed() {
@@ -178,12 +178,12 @@ public struct CubePos {
     }
 
     /// <summary>
-    /// Convert world-space cube position to root space.
+    /// Convert model-space cube position to root space.
     /// </summary>
-    /// <param name="world">World to use for transformation</param>
+    /// <param name="model">Model to use for transformation</param>
     /// <returns>Cube position in root coordinates</returns>
-    public readonly CubePos ToRoot(CubeWorld world) {
-        return (this - world.rootPos) << world.rootDepth;
+    public readonly CubePos ToRoot(CubeModel model) {
+        return (this - model.rootPos) << model.rootDepth;
     }
 
     /// <summary>

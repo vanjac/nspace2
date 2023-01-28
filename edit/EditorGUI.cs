@@ -45,7 +45,7 @@ public class EditorGUI : Node {
     }
 
     private string DepthString(int depth) {
-        float size = CubeUtil.WorldCubeSize(depth);
+        float size = CubeUtil.ModelCubeSize(depth);
         if (size < 1)
             return $"1 / {(int)(1 / size)}";
         else

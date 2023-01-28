@@ -25,8 +25,8 @@ public class Editor : Spatial {
 
     private EditState state;
     private Undoer<EditState> undo = new Undoer<EditState>();
-    private Stack<Immut<CubeWorld>> adjustPos = new Stack<Immut<CubeWorld>>();
-    private Stack<Immut<CubeWorld>> adjustNeg = new Stack<Immut<CubeWorld>>();
+    private Stack<Immut<CubeModel>> adjustPos = new Stack<Immut<CubeModel>>();
+    private Stack<Immut<CubeModel>> adjustNeg = new Stack<Immut<CubeModel>>();
     private (string, ulong)? adjustOp;
 
     private CubePos selStartMin, selStartMax;
@@ -96,7 +96,6 @@ public class Editor : Spatial {
     }
 
     private void UpdateState(bool updateWorld) {
-        Transform = state.world.Val.transform;
         if (updateWorld)
             UpdateWorld();
         UpdateSelection();
@@ -109,18 +108,18 @@ public class Editor : Spatial {
         nMoveAdjustZ.Update();
 
         nGUI.UpdateState(state, undo);
-        nCubeMesh.GridSize = CubeUtil.WorldCubeSize(state.editDepth);
-        nDebugCube.Translation = state.world.Val.rootPos.ToWorldPos();
-        nDebugCube.Scale = Vector3.One * CubeUtil.WorldCubeSize(state.world.Val.rootDepth);
+        nCubeMesh.GridSize = CubeUtil.ModelCubeSize(state.editDepth);
     }
 
     private void UpdateWorld() {
-        var w = state.world.Val;
+        var m = state.world.Val;
         ulong startTick = Time.GetTicksMsec();
-        var stats = nCubeMesh.UpdateMesh(w.root, w.rootPos.ToWorldPos(),
-            CubeUtil.WorldCubeSize(w.rootDepth), w.voidVolume, materialsDict);
+        var stats = nCubeMesh.UpdateMesh(m.root, m.rootPos.ToModelPos(),
+            CubeUtil.ModelCubeSize(m.rootDepth), m.voidVolume, materialsDict);
         nGUI.StatsText =
             $"{stats.branches} br {stats.quads} qu {Time.GetTicksMsec() - startTick} ms";
+        nDebugCube.Translation = state.world.Val.rootPos.ToModelPos();
+        nDebugCube.Scale = Vector3.One * CubeUtil.ModelCubeSize(state.world.Val.rootDepth);
     }
 
     private void UpdateSelection() {
@@ -128,14 +127,14 @@ public class Editor : Spatial {
         nBoxSelection.Visible = false;
         if (state.HasSelection(SelectMode.Cubes)) {
             nBoxSelection.Visible = true;
-            nBoxSelection.Translation = state.selMin.ToWorldPos();
-            nBoxSelection.Scale = (state.selMax - state.selMin).ToWorldSize();
+            nBoxSelection.Translation = state.selMin.ToModelPos();
+            nBoxSelection.Scale = (state.selMax - state.selMin).ToModelSize();
         } else if (state.HasSelection(SelectMode.Faces)) {
             nRectSelection.Visible = true;
-            nRectSelection.Translation = state.selMin.ToWorldPos();
+            nRectSelection.Translation = state.selMin.ToModelPos();
             nRectSelection.Rotation = AxisRotation(state.selAxis);
             int s = state.selAxis + 1, t = state.selAxis + 2;
-            Vector3 size = (state.selMax - state.selMin).ToWorldSize();
+            Vector3 size = (state.selMax - state.selMin).ToModelSize();
             size = CubeUtil.CycleVector(size, 5 - state.selAxis);
             size.z = state.selDir ? 1 : -1;
             nRectSelection.Scale = size;
@@ -145,8 +144,8 @@ public class Editor : Spatial {
     private void UpdateAdjustPos() {
         nExtrudeAdjust.Enabled = false;
         nMoveAdjustX.Enabled = nMoveAdjustY.Enabled = nMoveAdjustZ.Enabled = false;
-        Vector3 center = (state.selMin.ToWorldPos() + state.selMax.ToWorldPos()) / 2;
-        float snap = CubeUtil.WorldCubeSize(state.editDepth);
+        Vector3 center = (state.selMin.ToModelPos() + state.selMax.ToModelPos()) / 2;
+        float snap = CubeUtil.ModelCubeSize(state.editDepth);
         if (state.HasSelection(SelectMode.Cubes)) {
             nMoveAdjustX.Enabled = nMoveAdjustY.Enabled = nMoveAdjustZ.Enabled = true;
             nMoveAdjust.Translation = center;
@@ -249,7 +248,7 @@ public class Editor : Spatial {
         bool modified = false;
         foreach (CubePos cubePos in IterateSelectedCubes()) {
             var testPos = cubePos + offset;
-            state.world = Util.AssignChanged(state.world, CubeEdit.ExpandWorld(state.world,
+            state.world = Util.AssignChanged(state.world, CubeEdit.ExpandModel(state.world,
                 new CubePos[] { testPos, testPos + new CubePos(cubeSize) }), ref modified);
         }
         return modified;
@@ -263,20 +262,20 @@ public class Editor : Spatial {
         bool worldModified = false;
         foreach (CubePos facePos in IterateSelectedFaces()) {
             var testPos = dir ? facePos : (facePos - CubePos.FromAxis(state.selAxis, cubeSize));
-            state.world = Util.AssignChanged(state.world, CubeEdit.ExpandWorld(state.world,
+            state.world = Util.AssignChanged(state.world, CubeEdit.ExpandModel(state.world,
                 new CubePos[] { testPos, testPos + new CubePos(cubeSize) }), ref worldModified);
         }
 
-        CubeWorld w = state.world.Val;
-        Cube oldRoot = w.root;
+        CubeModel m = state.world.Val;
+        Cube oldRoot = m.root;
         bool rootModified = false;
         foreach (CubePos facePos in IterateSelectedFaces()) {
-            w.root = Util.AssignChanged(w.root, CubeEdit.Extrude(oldRoot, w.root,
-                facePos.ToRoot(w), state.RootEditDepth, state.selAxis, dir),
+            m.root = Util.AssignChanged(m.root, CubeEdit.Extrude(oldRoot, m.root,
+                facePos.ToRoot(m), state.RootEditDepth, state.selAxis, dir),
                 ref rootModified);
         }
         if (rootModified)
-            state.world = Immut.Create(w);
+            state.world = Immut.Create(m);
 
         return worldModified | rootModified;
     }
@@ -288,24 +287,24 @@ public class Editor : Spatial {
         CubePos axisOff = CubePos.FromAxis(axis, CubePos.CubeSize(state.editDepth), dir);
         bool worldModified = ExpandIncludeCubeSelection(axisOff);
 
-        CubeWorld w = state.world.Val;
-        Cube oldRoot = w.root;
+        CubeModel m = state.world.Val;
+        Cube oldRoot = m.root;
         bool rootModified = false;
         foreach (CubePos cubePos in IterateSelectedCubes()) {
-            w.root = Util.AssignChanged(w.root,
+            m.root = Util.AssignChanged(m.root,
                 CubeEdit.TransferCube(
-                    oldRoot, cubePos.ToRoot(w), state.RootEditDepth,
-                    w.root, (cubePos + axisOff).ToRoot(w), state.RootEditDepth),
+                    oldRoot, cubePos.ToRoot(m), state.RootEditDepth,
+                    m.root, (cubePos + axisOff).ToRoot(m), state.RootEditDepth),
                     ref rootModified);
             if (!state.IsSelected(cubePos - axisOff)) {
                 CubePos facePos = dir ? cubePos : (cubePos - axisOff);
-                w.root = Util.AssignChanged(w.root, CubeEdit.Extrude(oldRoot, w.root,
-                    facePos.ToRoot(w), state.RootEditDepth, axis, dir),
+                m.root = Util.AssignChanged(m.root, CubeEdit.Extrude(oldRoot, m.root,
+                    facePos.ToRoot(m), state.RootEditDepth, axis, dir),
                     ref rootModified);
             }
         }
         if (rootModified)
-            state.world = Immut.Create(w);
+            state.world = Immut.Create(m);
 
         return worldModified | rootModified;
     }
@@ -314,48 +313,48 @@ public class Editor : Spatial {
         if (!state.HasSelection(SelectMode.Cubes))
             return false;
         bool worldModified = ExpandIncludeCubeSelection(CubePos.ZERO);
-        CubeWorld w = state.world.Val;
+        CubeModel m = state.world.Val;
         bool rootModified = false;
         foreach (CubePos cubePos in IterateSelectedCubes()) {
-            w.root = Util.AssignChanged(w.root, CubeEdit.PutVolumes(w.root,
-                cubePos.ToRoot(w), state.RootEditDepth, volume), ref rootModified);
+            m.root = Util.AssignChanged(m.root, CubeEdit.PutVolumes(m.root,
+                cubePos.ToRoot(m), state.RootEditDepth, volume), ref rootModified);
         }
         if (rootModified)
-            state.world = Immut.Create(w);
+            state.world = Immut.Create(m);
         return worldModified | rootModified;
     }
 
     private bool Paint(Immut<Cube.Face> face) {
         if (!state.AnySelection)
             return false;
-        CubeWorld w = state.world.Val;
+        CubeModel m = state.world.Val;
         bool modified = false;
         if (state.selMode == SelectMode.Faces) {
             foreach (CubePos facePos in IterateSelectedFaces()) {
-                if (!facePos.InCube(w.rootPos, w.rootDepth))
+                if (!facePos.InCube(m.rootPos, m.rootDepth))
                     continue;
-                w.root = Util.AssignChanged(w.root, CubeEdit.PutFaces(w.root,
-                    facePos.ToRoot(w), state.RootEditDepth, state.selAxis, face),
+                m.root = Util.AssignChanged(m.root, CubeEdit.PutFaces(m.root,
+                    facePos.ToRoot(m), state.RootEditDepth, state.selAxis, face),
                     ref modified);
             }
         } else if (state.selMode == SelectMode.Cubes) {
             var cubeSize = CubePos.CubeSize(state.editDepth);
             foreach (CubePos cubePos in IterateSelectedCubes()) {
-                if (!cubePos.InCube(w.rootPos, w.rootDepth))
+                if (!cubePos.InCube(m.rootPos, m.rootDepth))
                     continue;
-                w.root = Util.AssignChanged(w.root, CubeEdit.PutFaces(w.root,
-                    cubePos.ToRoot(w), state.RootEditDepth, face), ref modified);
+                m.root = Util.AssignChanged(m.root, CubeEdit.PutFaces(m.root,
+                    cubePos.ToRoot(m), state.RootEditDepth, face), ref modified);
                 for (int axis = 0; axis < 3; axis++) {
                     CubePos adjPos = cubePos + CubePos.FromAxis(axis, cubeSize);
                     if (!state.IsSelected(adjPos)) {
-                        w.root = Util.AssignChanged(w.root, CubeEdit.PutFaces(w.root,
-                            adjPos.ToRoot(w), state.RootEditDepth, axis, face), ref modified);
+                        m.root = Util.AssignChanged(m.root, CubeEdit.PutFaces(m.root,
+                            adjPos.ToRoot(m), state.RootEditDepth, axis, face), ref modified);
                     }
                 }
             }
         }
         if (modified)
-            state.world = Immut.Create(w);
+            state.world = Immut.Create(m);
         return modified;
     }
 
@@ -364,15 +363,15 @@ public class Editor : Spatial {
             return false;
         ExpandIncludeCubeSelection(CubePos.ZERO);
         Cube oldRoot = state.world.Val.root;
-        CubeWorld w = state.world.Val;
+        CubeModel m = state.world.Val;
         bool modified = false;
         foreach (CubePos cubePos in IterateSelectedCubes()) {
-            w.root = Util.AssignChanged(w.root, CubeEdit.TransferCube(
-                oldRoot, (cubePos - state.selMin + fromPos).ToRoot(w), state.RootEditDepth,
-                w.root, cubePos.ToRoot(w), state.RootEditDepth), ref modified);
+            m.root = Util.AssignChanged(m.root, CubeEdit.TransferCube(
+                oldRoot, (cubePos - state.selMin + fromPos).ToRoot(m), state.RootEditDepth,
+                m.root, cubePos.ToRoot(m), state.RootEditDepth), ref modified);
         }
         if (modified)
-            state.world = Immut.Create(w);
+            state.world = Immut.Create(m);
         return modified;
     }
 
@@ -385,18 +384,17 @@ public class Editor : Spatial {
     private void NewWorld(Guid innerVolume, Guid outerVolume) {
         var inner = new Cube.Leaf(innerVolume).Immut();
         var outer = new Cube.Leaf(outerVolume).Immut();
-        var world = Immut.Create(new CubeWorld {
+        var world = Immut.Create(new CubeModel {
             root = new Cube.Branch {
                 children = (inner, outer, outer, outer, outer, outer, outer, outer)
             }.Immut(),
-            rootDepth = CubeWorld.UNIT_DEPTH - 3,
+            rootDepth = CubeModel.UNIT_DEPTH - 3,
             rootPos = CubePos.HALF,
-            transform = Transform.Identity,
             voidVolume = outerVolume
         });
         state = new EditState {
             world = world,
-            editDepth = CubeWorld.UNIT_DEPTH,
+            editDepth = CubeModel.UNIT_DEPTH,
             camFocus = new Vector3(2, 2, 2),
             camZoom = 6f,
         };

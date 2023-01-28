@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 
 /// <summary>
-/// Operations on Cubes and CubeWorlds.
+/// Operations on Cubes and CubeModels.
 /// </summary>
 public static class CubeEdit {
     /// <summary>
@@ -435,88 +435,72 @@ public static class CubeEdit {
     }
 
     /// <summary>
-    /// If any of the given unit positions are outside the bounds of the world (ie. the unit cube),
-    /// expand the root of the world to include those points, keeping existing cubes at the same
-    /// position/size.
+    /// If any of the given unit positions are outside the bounds of the model, expand the root of
+    /// the model to include those points, keeping existing cubes at the same position/size.
     /// </summary>
-    /// <param name="world">The world which may be expanded.</param>
-    /// <param name="points">Points to test, mapped so (0,0,0) corresponds to world.rootPos
-    /// and (1,1,1) corresponds to world.rootPos + world.rootSize * (1,1,1).</param>
-    /// <param name="oldRootPos">
-    /// The position of the previous root of the world within the new root.
-    /// Will be (0,0,0) if not expanded.
-    /// </param>
-    /// <param name="depth">
-    /// The depth of the previous root of the world within the new root. Will be 0 if not expanded.
-    /// </param>
-    /// <returns>The expanded world.</returns>
-    public static Immut<CubeWorld> ExpandWorld(Immut<CubeWorld> world,
+    /// <param name="model">The model which may be expanded.</param>
+    /// <param name="points">Points to test in global coordinates.</param>
+    /// <returns>The expanded model.</returns>
+    public static Immut<CubeModel> ExpandModel(Immut<CubeModel> model,
             IEnumerable<CubePos> points) {
-        CubeWorld w = world.Val;
+        CubeModel m = model.Val;
         bool modified = false;
         foreach (CubePos point in points) {
-            while (!point.InCube(w.rootPos, w.rootDepth)) {
-                var rootPos = w.rootPos;
+            while (!point.InCube(m.rootPos, m.rootDepth)) {
+                var rootPos = m.rootPos;
                 int rootChildI = (point - rootPos).ChildIndex(); // relies on 2's complement
-                Cube.Branch newRoot = new Cube.Branch(new Cube.Leaf(w.voidVolume).Immut());
-                newRoot.children[rootChildI] = w.root;
+                Cube.Branch newRoot = new Cube.Branch(new Cube.Leaf(m.voidVolume).Immut());
+                newRoot.children[rootChildI] = m.root;
 
-                w.root = newRoot.Immut();
-                w.rootDepth -= 1;
-                w.rootPos -= CubePos.FromChildIndex(rootChildI) >> w.rootDepth;
+                m.root = newRoot.Immut();
+                m.rootDepth -= 1;
+                m.rootPos -= CubePos.FromChildIndex(rootChildI) >> m.rootDepth;
                 modified = true;
             }
         }
-        return modified ? Immut.Create(w) : world;
+        return modified ? Immut.Create(m) : model;
     }
 
     /// <summary>
-    /// Reduce the size of the root of the world as much as possible without affecting its contents.
+    /// Reduce the size of the model's root as much as possible without affecting its contents.
     /// </summary>
-    /// <param name="world">The world to shrink.</param>
-    /// <param name="newRootPos">
-    /// The position of the new root of the world within the previous root.
-    /// Will be (0,0,0) if no change.
-    /// </param>
-    /// <param name="depth">
-    /// The depth of the new root of the world within the previous root. Will be 0 if no change.
-    /// </param>
-    /// <returns>The world, possibly reduced in size.</returns>
-    private static Immut<CubeWorld> ShrinkWorld(Immut<CubeWorld> world) {
-        CubeWorld w = world.Val;
+    /// <param name="model">The model to shrink.</param>
+    /// <returns>The model, possibly reduced in size.</returns>
+    private static Immut<CubeModel> ShrinkModel(Immut<CubeModel> model) {
+        CubeModel m = model.Val;
         bool modified = false;
-        while (CanShrink(w, out int childI)) {
-            w.root = (w.root as Cube.BranchImmut).child(childI);
-            w.rootPos += CubePos.FromChildIndex(childI) >> w.rootDepth;
-            w.rootDepth += 1;
+        while (CanShrink(m, out int childI)) {
+            m.root = (m.root as Cube.BranchImmut).child(childI);
+            m.rootPos += CubePos.FromChildIndex(childI) >> m.rootDepth;
+            m.rootDepth += 1;
             modified = true;
         }
-        return modified ? Immut.Create(w) : world;
+        return modified ? Immut.Create(m) : model;
     }
 
     /// <summary>
-    /// Check if the root of the world can be reduced to one of its children.
+    /// Check if the root of the model can be reduced to one of its children.
     /// </summary>
-    /// <param name="world">The world to check.</param>
+    /// <param name="model">The model to check.</param>
     /// <param name="childI">Index of the child which can become the new root.</param>
-    /// <returns>True if the world root can be replaced with one of its children (childI).</returns>
-    private static bool CanShrink(CubeWorld world, out int childI) {
+    /// <returns>True if the model root can be replaced with one of its children (childI).</returns>
+    private static bool CanShrink(CubeModel model, out int childI) {
         childI = -1;
-        if (!(world.root is Cube.BranchImmut branch))
+        if (!(model.root is Cube.BranchImmut branch))
             return false;
         for (int i = 0; i < 8; i++) {
             if (branch.child(i) is Cube.BranchImmut) {
                 if (childI != -1) // more than one branch, can't shrink
                     return false;
                 childI = i;
-            } else if ((branch.child(i) as Cube.LeafImmut).Val.volume != world.voidVolume) {
+            } else if ((branch.child(i) as Cube.LeafImmut).Val.volume != model.voidVolume) {
                 return false;
             }
         }
         var child = branch.child(childI);
         for (int axis = 0; axis < 3; axis++) {
             if ((childI & (1 << axis)) == 0) {
-                if (!MaxSideVolumeEqual(child, axis, world.voidVolume))
+                if (!MaxSideVolumeEqual(child, axis, model.voidVolume))
                     return false;
             }
         }
@@ -547,18 +531,18 @@ public static class CubeEdit {
     }
 
     /// <summary>
-    /// Remove as many branch cubes as possible from the world without changing the 3D structure.
+    /// Remove as many branch cubes as possible from the model without changing the 3D structure.
     /// </summary>
-    /// <param name="world">The world to be simplified.</param>
-    /// <returns>Equivalent simplified version of the world.</returns>
-    public static Immut<CubeWorld> Simplify(Immut<CubeWorld> world) {
-        CubeWorld w = world.Val;
-        var voidLeaf = new Cube.Leaf(w.voidVolume).Immut();
+    /// <param name="model">The model to be simplified.</param>
+    /// <returns>Equivalent simplified version of the model.</returns>
+    public static Immut<CubeModel> Simplify(Immut<CubeModel> model) {
+        CubeModel m = model.Val;
+        var voidLeaf = new Cube.Leaf(m.voidVolume).Immut();
         bool modified = false;
-        w.root = Util.AssignChanged(w.root, SimplifyCube(w.root, (voidLeaf, voidLeaf, voidLeaf)),
+        m.root = Util.AssignChanged(m.root, SimplifyCube(m.root, (voidLeaf, voidLeaf, voidLeaf)),
             ref modified);
-        if (modified) world = Immut.Create(w);
-        return ShrinkWorld(world);
+        if (modified) model = Immut.Create(m);
+        return ShrinkModel(model);
     }
 
     /// <summary>
