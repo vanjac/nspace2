@@ -54,6 +54,43 @@ public static class CubeEdit {
         return newBranch.Immut();
     }
 
+    private delegate Cube.LeafImmut BoxFunc(Cube.LeafImmut leaf, int minI, int maxI);
+
+    /// <summary>
+    /// Apply a function to all leaves within the given box inside the root. Produce a new root cube
+    /// with the function applied. Create branches if necessary.
+    /// </summary>
+    /// <param name="root">Root cube in box is located.</param>
+    /// <param name="minPos">Minimum coordinates of the box.</param>
+    /// <param name="maxPos">Maximum coordinates of the box.</param>
+    /// <param name="dim">Minimum dimension of region that must overlap each leaf.</param>
+    /// <param name="func">Function to apply to each leaf inside the box.</param>
+    /// <returns>A new root cube with the function applied to each leaf in the box.</returns>
+    private static Cube BoxApply(Cube root, CubePos minPos, CubePos maxPos, int dim, BoxFunc func) {
+        if ((maxPos - minPos).Dimension() < dim)
+            return root;
+        int minI = minPos.ChildIndex(), maxI = maxPos.ChildIndex();
+        Cube.Branch newBranch;
+        if (root is Cube.LeafImmut leaf) {
+            if (minPos.Equals(CubePos.ZERO) && maxPos.AtExtremes())
+                return func(leaf, minI, maxI);
+            newBranch = new Cube.Branch(leaf);
+        } else {
+            newBranch = (root as Cube.BranchImmut).Val;
+        }
+        bool modified = false;
+        for (int i = 0; i < 8; i++) {
+            if (((i ^ minI) & (i ^ maxI)) != 0)
+                continue;
+            CubePos childPos = CubePos.FromChildIndex(i);
+            newBranch.children[i] = Util.AssignChanged(newBranch.children[i],
+                BoxApply(newBranch.children[i], minPos.ClampCube(childPos, 1) << 1,
+                maxPos.ClampCube(childPos, 1) << 1, dim, func), ref modified);
+        }
+        if (!modified) return root;
+        return newBranch.Immut();
+    }
+
     /// <summary>
     /// Place a cube at the given position in the root, with the given depth.
     /// Create branches if necessary.
@@ -77,103 +114,46 @@ public static class CubeEdit {
     }
 
     /// <summary>
-    /// Set all volumes within a cube located in the root.
+    /// Set all volumes within a box located in the root.
     /// </summary>
-    /// <param name="root">Root cube containting the cube to modify.</param>
-    /// <param name="pos">Position of cube to modify.</param>
-    /// <param name="depth">Depth of cube to modify in root.</param>
-    /// <param name="volume">Volume to set within the cube.</param>
-    /// <returns>The root with all volumes in one cube replaced.</returns>
-    public static Cube PutVolumes(Cube root, CubePos pos, int depth, Guid volume) {
-        return CubeApply(root, pos, depth, c => SetAllVolumes(c, volume));
-    }
-
-    /// <summary>
-    /// Set all volumes in the cube.
-    /// </summary>
-    /// <param name="cube">Cube to modify.</param>
-    /// <param name="volume">New volume.</param>
-    /// <returns>The cube with all volumes replaced recursively.</returns>
-    private static Cube SetAllVolumes(Cube cube, Guid volume) {
-        if (cube is Cube.LeafImmut leaf) {
-            if (leaf.Val.volume == volume) return cube; // avoid allocation
+    /// <param name="root">Root cube in which the box is located.</param>
+    /// <param name="minPos">Minimum coordinates of the box.</param>
+    /// <param name="maxPos">Maximum coordinates of the box.</param>
+    /// <param name="volume">Volume to set within the box.</param>
+    /// <returns>The root cube with all volumes in the box replaced.</returns>
+    public static Cube PutVolumes(Cube root, CubePos minPos, CubePos maxPos, Guid volume) {
+        // TODO auto simplify cubes not bordering minimum bounds
+        return BoxApply(root, minPos, maxPos, 3, (leaf, minI, maxI) => {
+            if (leaf.Val.volume == volume) return leaf; // avoid allocation
             var newLeaf = leaf.Val;
             newLeaf.volume = volume;
             return newLeaf.Immut();
-        } else {
-            var newBranch = (cube as Cube.BranchImmut).Val;
+        });
+    }
+
+    /// <summary>
+    /// Set all faces within a box located in the root.
+    /// </summary>
+    /// <param name="root">Root cube in which the box is located.</param>
+    /// <param name="minPos">Minimum coordinates of the box.</param>
+    /// <param name="maxPos">Maximum coordinates of the box.</param>
+    /// <param name="face">New value to replace existing faces.</param>
+    /// <returns>The root cube with all faces in the box replaced.</returns>
+    public static Cube PutFaces(Cube root, CubePos minPos, CubePos maxPos, Immut<Cube.Face> face) {
+        return BoxApply(root, minPos, maxPos, 2, (leaf, minI, maxI) => {
+            if (minI != 0)
+                return leaf;
+            var newLeaf = leaf.Val;
             bool modified = false;
-            for (int i = 0; i < 7; i++) { // skip 7!
-                newBranch.children[i] = Util.AssignChanged(newBranch.children[i],
-                    SetAllVolumes(newBranch.children[i], volume), ref modified);
-            }
-            if (newBranch.children[7] is Cube.LeafImmut lastLeaf) {
-                newBranch.children[7] = Util.AssignChanged(newBranch.children[7],
-                    SetAllVolumes(lastLeaf, volume), ref modified);
-                if (!modified) return cube; // avoid allocation
-            } else {
-                // if child 7 is a branch it can safely be replaced with a leaf
-                // since none of its faces will be boundaries
-                newBranch.children[7] = new Cube.Leaf(volume).Immut();
-            }
-            return newBranch.Immut();
-        }
-    }
-
-    /// <summary>
-    /// Set all faces within a cube located in the root.
-    /// </summary>
-    /// <param name="root">Root cube in which the cube is located.</param>
-    /// <param name="pos">Position of the cube to modify.</param>
-    /// <param name="depth">Depth of cube to modify in root.</param>
-    /// <param name="face">New value to replace existing faces.</param>
-    /// <returns>The root cube with all faces replaced.</returns>
-    public static Cube PutFaces(Cube root, CubePos pos, int depth, Immut<Cube.Face> face) {
-        return CubeApply(root, pos, depth, c => SetAllFaces(c, face));
-    }
-
-    /// <summary>
-    /// Set all faces within a square aligned to the side of one cube.
-    /// </summary>
-    /// <param name="root">Root cube in which the square is located.</param>
-    /// <param name="pos">
-    /// Position of the cube whose side will form the square of faces to replace.
-    /// </param>
-    /// <param name="depth">Depth in tree of the cube.</param>
-    /// <param name="axis">Normal axis of the square.</param>
-    /// <param name="face">New value to replace existing faces.</param>
-    /// <returns>The root cube with all faces within one square replaced.</returns>
-    public static Cube PutFaces(Cube root, CubePos pos, int depth, int axis,
-            Immut<Cube.Face> face) {
-        return CubeApply(root, pos, depth, c => SetAllFaces(c, axis, face));
-    }
-
-    /// <summary>
-    /// Set all faces inside the cube.
-    /// </summary>
-    /// <param name="cube">Target cube containing faces to be set.</param>
-    /// <param name="face">New value to replace existing faces.</param>
-    /// <returns>The given cube with all faces replaced.</returns>
-    private static Cube SetAllFaces(Cube cube, Immut<Cube.Face> face) {
-        if (cube is Cube.LeafImmut leaf) {
             for (int axis = 0; axis < 3; axis++) {
-                if (!leaf.face(axis).Val.Equals(face.Val)) {
-                    var newLeaf = leaf.Val;
-                    newLeaf.faces = (face, face, face);
-                    return newLeaf.Immut();
+                if ((maxI | (1 << axis)) == 7 && !leaf.face(axis).Val.Equals(face.Val)) {
+                    newLeaf.faces[axis] = face;
+                    modified = true;
                 }
             }
-            return cube; // avoid allocation
-        } else {
-            var newBranch = (cube as Cube.BranchImmut).Val;
-            bool modified = false;
-            for (int i = 0; i < 8; i++) {
-                newBranch.children[i] = Util.AssignChanged(newBranch.children[i],
-                    SetAllFaces(newBranch.children[i], face), ref modified);
-            }
-            if (!modified) return cube; // avoid allocation
-            return newBranch.Immut();
-        }
+            if (!modified) return leaf; // avoid allocation
+            return newLeaf.Immut();
+        });
     }
 
     /// <summary>
