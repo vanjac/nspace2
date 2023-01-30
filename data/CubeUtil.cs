@@ -126,6 +126,15 @@ public struct CubePos {
     }
 
     /// <summary>
+    /// Construct a CubePos with all coordinates equal to CubeSize(depth)
+    /// </summary>
+    /// <param name="depth">Depth of the cube relative to root.</param>
+    /// <returns>CubePos with all coordinates equal to the cube size.</returns>
+    public static CubePos FromCubeSize(int depth) {
+        return new CubePos(CubeSize(depth));
+    }
+
+    /// <summary>
     /// Get the position of a child within the unit cube.
     /// </summary>
     /// <param name="i">Child index.</param>
@@ -192,7 +201,8 @@ public struct CubePos {
     /// <param name="model">Model to use for transformation.</param>
     /// <returns>Cube position in root coordinates.</returns>
     public readonly CubePos ToRootClamped(CubeModel model) {
-        return ClampCube(model.rootPos, model.rootDepth).ToRoot(model);
+        return Clamp(model.rootPos, model.rootPos + FromCubeSize(model.rootDepth - 1))
+            .ToRoot(model);
     }
 
     /// <summary>
@@ -214,38 +224,6 @@ public struct CubePos {
         return (int)(((x >> 31) & 1) | ((y >> 30) & 2) | ((z >> 29) & 4));
     }
 
-    /// <summary>
-    /// Count the number of non-zero coordinates.
-    /// </summary>
-    /// <returns>Number of non-zero coordinates (0 - 3)</returns>
-    public readonly int Dimension() {
-        return ((x != 0) ? 1 : 0) + ((y != 0) ? 1 : 0) + ((z != 0) ? 1 : 0);
-    }
-
-    /// <summary>
-    /// Check if all coordinates are at either the minimum or maximum possible value.
-    /// </summary>
-    /// <returns>true if all coordinate are at min/max value.</returns>
-    public readonly bool AtExtremes() {
-        for (int axis = 0; axis < 3; axis++)
-            if (this[axis] != 0 && this[axis] != uint.MaxValue)
-                return false;
-        return true;
-    }
-
-    /// <summary>
-    /// Check if the point is inside a cube. (Inclusive of minimum boundary, exclusive of maximum).
-    /// </summary>
-    /// <param name="origin">Minimum position of the cube.</param>
-    /// <param name="depth">Depth of the cube (size found by CubeSize(depth)).</param>
-    /// <returns>true if the point is inside the cube.</returns>
-    public readonly bool InCube(CubePos origin, int depth) {
-        uint size = CubeSize(depth);
-        return x >= origin.x && x < origin.x + size
-            && y >= origin.y && y < origin.y + size
-            && z >= origin.z && z < origin.z + size;
-    }
-
     private static uint Clamp(uint value, uint min, uint max) {
         if (value < min) return min;
         if (value > max) return max;
@@ -260,16 +238,6 @@ public struct CubePos {
     /// <returns>Position clamped to the range.</returns>
     public readonly CubePos Clamp(CubePos min, CubePos max) {
         return new CubePos(Clamp(x, min.x, max.x), Clamp(y, min.y, max.y), Clamp(z, min.z, max.z));
-    }
-
-    /// <summary>
-    /// Clamp all coordinates to be inside a cube (inclusive of minimum boundary, exclusive of max).
-    /// </summary>
-    /// <param name="min">Minimum position of the cube.</param>
-    /// <param name="depth">Depth of the cube.</param>
-    /// <returns>Position clamped to the cube.</returns>
-    public readonly CubePos ClampCube(CubePos min, int depth) {
-        return Clamp(min, min + new CubePos(CubeSize(depth) - 1));
     }
 
     public readonly override string ToString() {
@@ -287,10 +255,15 @@ public struct CubePos {
     public static CubePos operator >>(CubePos a, int b)
         => new CubePos(a.x >> b, a.y >> b, a.z >> b);
     public static CubePos operator <<(CubePos a, int b)
-        => new CubePos(shlRepeat(a.x, b), shlRepeat(a.y, b), shlRepeat(a.z, b));
-    private static uint shlRepeat(uint a, int b) { // shift left and repeat last bit
-        return (a << b) | ((0u - (a & 1)) >> (32 - b));
-    }
+        => new CubePos(a.x << b, a.y << b, a.z << b);
+    public static bool operator <(CubePos a, CubePos b)
+        => a.x < b.x && a.y < b.y && a.z < b.z;
+    public static bool operator >(CubePos a, CubePos b)
+        => a.x > b.x && a.y > b.y && a.z > b.z;
+    public static bool operator <=(CubePos a, CubePos b)
+        => a.x <= b.x && a.y <= b.y && a.z <= b.z;
+    public static bool operator >=(CubePos a, CubePos b)
+        => a.x >= b.x && a.y >= b.y && a.z >= b.z;
 }
 
 public readonly struct FaceProfile {
