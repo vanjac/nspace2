@@ -244,12 +244,13 @@ public static class CubeEdit {
     /// <returns>dstRoot with the box from srcRoot copied to its new location.</returns>
     public static Cube TransferBox(Cube srcRoot, CubePos srcMin, CubePos srcMax,
             Cube dstRoot, CubePos dstMin, int depthDiff) {
+        (CubePos dstPos, int dstDepth) calcDst(CubePos srcPos, int srcDepth)
+            => (dstMin + ((srcPos - srcMin) >> depthDiff), srcDepth + depthDiff);
         for (int axis = 0; axis < 3; axis++) {
             MaxRectApply(srcRoot, srcMin, srcMax, axis,
                 (ref Cube srcCubeRef, CubePos srcPos, int srcDepth) => {
                     var srcCube = srcCubeRef; // can't use ref inside nested lambda
-                    CubePos dstPos = dstMin + ((srcPos - srcMin) >> depthDiff);
-                    int dstDepth = srcDepth + depthDiff;
+                    (CubePos dstPos, int dstDepth) = calcDst(srcPos, srcDepth);
                     if (!dstPos.Floor(dstDepth).Equals(dstPos))
                         return false; // not aligned to grid
                     // transfer max face from cube at srcPos
@@ -260,8 +261,7 @@ public static class CubeEdit {
                 });
         }
         BoxApply(srcRoot, srcMin, srcMax, (ref Cube srcCube, CubePos srcPos, int srcDepth) => {
-            CubePos dstPos = dstMin + ((srcPos - srcMin) >> depthDiff);
-            int dstDepth = srcDepth + depthDiff;
+            (CubePos dstPos, int dstDepth) = calcDst(srcPos, srcDepth);
             if (!dstPos.Floor(dstDepth).Equals(dstPos))
                 return false; // not aligned to grid
             Cube copied = srcCube;
