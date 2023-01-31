@@ -84,9 +84,9 @@ public static class CubeEdit {
             int faceAxis = -1, CubePos cubePos = new CubePos(), int cubeDepth = 0) {
         if (cubeDepth > 0) {
             var cubePosMax = cubePos + CubePos.FromCubeSize(cubeDepth);
-            if (faceAxis != -1) cubePosMax[faceAxis] = cubePos[faceAxis] + 1;
             if (!(cubePosMax > minPos && cubePos < maxPos))
                 return cube; // outside box
+            if (faceAxis != -1) cubePosMax[faceAxis] = cubePos[faceAxis] + 1;
             if (cubePos >= minPos && cubePosMax <= maxPos) {
                 if (func(ref cube, cubePos, cubeDepth))
                     return cube;
