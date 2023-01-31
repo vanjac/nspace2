@@ -74,18 +74,20 @@ public static class CubeEdit {
     /// <param name="minPos">Minimum coordinates of the box.</param>
     /// <param name="maxPos">Maximum coordinates of the box.</param>
     /// <param name="func">Function to apply to each cube inside the box.</param>
-    /// <param name="faceAxis">
-    /// If specified, only check if a single face (with width 1) is inside the box.
+    /// <param name="flattenAxes">
+    /// Bitfield of axes along which the cube is collapsed to width 1 when checking if inside box.
     /// </param>
     /// <param name="cubePos">Position of the current cube.</param>
     /// <param name="cubeDepth">Depth of the current cube.</param>
     /// <returns>A new root cube with the function applied to each cube in the box.</returns>
     private static Cube BoxApply(Cube cube, CubePos minPos, CubePos maxPos, CubeCallback func,
-            int faceAxis = -1, CubePos cubePos = new CubePos(), int cubeDepth = 0) {
+            int flattenAxes = 0, CubePos cubePos = new CubePos(), int cubeDepth = 0) {
         var cubePosMax = cubePos + CubePos.FromCubeSize(cubeDepth, -1);
         if (!(cubePosMax >= minPos && cubePos < maxPos))
             return cube; // outside box
-        if (faceAxis != -1) cubePosMax[faceAxis] = cubePos[faceAxis];
+        for (int axis = 0; axis < 3; axis++)
+            if ((flattenAxes & (1 << axis)) != 0)
+                cubePosMax[axis] = cubePos[axis];
         if (cubePos >= minPos && cubePosMax < maxPos) {
             if (func(ref cube, cubePos, cubeDepth))
                 return cube;
@@ -93,10 +95,10 @@ public static class CubeEdit {
         Cube.Branch newBranch = (cube is Cube.BranchImmut branch) ? branch.Val
             : new Cube.Branch(cube);
         bool modified = false;
-        for (int i = 0; i < 8; i++) { // TODO fewer iterations if faceAxis specified
+        for (int i = 0; i < 8; i++) { // TODO fewer iterations if flattenAxes specified
             CubePos childPos = cubePos + (CubePos.FromChildIndex(i) >> cubeDepth);
             newBranch.children[i] = Util.AssignChanged(newBranch.children[i], BoxApply(
-                newBranch.children[i], minPos, maxPos, func, faceAxis, childPos, cubeDepth + 1),
+                newBranch.children[i], minPos, maxPos, func, flattenAxes, childPos, cubeDepth + 1),
                 ref modified);
         }
         if (!modified) return cube;
@@ -104,19 +106,25 @@ public static class CubeEdit {
     }
 
     /// <summary>
-    /// Apply a function to all cubes whose min faces are inside a rectangle.
+    /// Apply a function to all cubes which border the maximum bounds of a box.
     /// </summary>
     /// <param name="cube">Cube in which rectangle exists</param>
     /// <param name="minPos">Minimum coordinates of the rectangle (axis coord ignored).</param>
     /// <param name="maxPos">Maximum coordinates of the rectangle, including axis coord.</param>
-    /// <param name="axis">Normal axis of rectangle and cube faces.</param>
+    /// <param name="axesMask">
+    /// Bitfield of axes of the box that cubes must be bordering the max side of.
+    /// </param>
     /// <param name="func">Function to apply to each cube inside the rectangle.</param>
     /// <returns>A new root cube with the function applied to each cube in the rectangle.</returns>
-    private static Cube MaxRectApply(Cube cube, CubePos minPos, CubePos maxPos, int axis,
+    private static Cube MaxSideBoxApply(Cube cube, CubePos minPos, CubePos maxPos, int axesMask,
             CubeCallback func) {
-        minPos[axis] = maxPos[axis];
-        maxPos[axis] ++;
-        return BoxApply(cube, minPos, maxPos, func, axis);
+        for (int axis = 0; axis < 3; axis++) {
+            if ((axesMask & (1 << axis)) != 0) {
+                minPos[axis] = maxPos[axis];
+                maxPos[axis] ++;
+            }
+        }
+        return BoxApply(cube, minPos, maxPos, func, axesMask);
     }
 
     /// <summary>
@@ -177,17 +185,18 @@ public static class CubeEdit {
     /// <returns>The root cube with all faces in the box replaced.</returns>
     public static Cube PutFaces(Cube root, CubePos minPos, CubePos maxPos, Immut<Cube.Face> face) {
         for (int axis = 0; axis < 3; axis++) {
-            root = MaxRectApply(root, minPos, maxPos, axis, (ref Cube cube, CubePos pos, int _) => {
-                if (cube is Cube.LeafImmut leaf) {
-                    if (!leaf.face(axis).Val.Equals(face.Val)) {
-                        var newLeaf = leaf.Val;
-                        newLeaf.faces[axis] = face;
-                        cube = newLeaf.Immut();
+            root = MaxSideBoxApply(root, minPos, maxPos, 1 << axis,
+                (ref Cube cube, CubePos pos, int _) => {
+                    if (cube is Cube.LeafImmut leaf) {
+                        if (!leaf.face(axis).Val.Equals(face.Val)) {
+                            var newLeaf = leaf.Val;
+                            newLeaf.faces[axis] = face;
+                            cube = newLeaf.Immut();
+                        }
+                        return true;
                     }
-                    return true;
-                }
-                return false;
-            });
+                    return false;
+                });
         }
         return BoxApply(root, minPos, maxPos, (ref Cube cube, CubePos pos, int _) => {
             if (cube is Cube.LeafImmut leaf) {
@@ -214,6 +223,7 @@ public static class CubeEdit {
     /// <param name="face">New value to replace existing faces.</param>
     /// <returns>The given cube with all faces along one side replaced.</returns>
     private static Cube SetAllFaces(Cube cube, int axis, Immut<Cube.Face> face) {
+        // TODO replace with call to BoxApply?
         if (cube is Cube.LeafImmut leaf) {
             if (leaf.face(axis).Val.Equals(face.Val)) return cube; // avoid allocation
             var newLeaf = leaf.Val;
@@ -247,7 +257,7 @@ public static class CubeEdit {
         (CubePos dstPos, int dstDepth) calcDst(CubePos srcPos, int srcDepth)
             => (dstMin + ((srcPos - srcMin) >> depthDiff), srcDepth + depthDiff);
         for (int axis = 0; axis < 3; axis++) {
-            MaxRectApply(srcRoot, srcMin, srcMax, axis,
+            MaxSideBoxApply(srcRoot, srcMin, srcMax, 1 << axis,
                 (ref Cube srcCubeRef, CubePos srcPos, int srcDepth) => {
                     var srcCube = srcCubeRef; // can't use ref inside nested lambda
                     (CubePos dstPos, int dstDepth) = calcDst(srcPos, srcDepth);
