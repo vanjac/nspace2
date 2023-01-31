@@ -146,15 +146,15 @@ public struct CubePos {
     }
 
     /// <summary>
-    /// Build a CubePos by setting a single axis to a value, and all others to 0.
+    /// Build a CubePos by setting a single axis to the size of a cube, and all others to 0.
     /// </summary>
     /// <param name="axis">Axis index to be set.</param>
-    /// <param name="len">Axis value to set.</param>
-    /// <param name="dir">If false, value will be made negative (2's complement).</param>
+    /// <param name="depth">Depth of cube to use with CubeSize().</param>
+    /// <param name="factor">Multiply axis value.</param>
     /// <returns>A CubePos with a single axis set.</returns>
-    public static CubePos FromAxis(int axis, uint len = 1, bool dir = true) {
+    public static CubePos FromAxisSize(int axis, int depth, int factor = 1) {
         CubePos pos = ZERO;
-        pos[axis] = dir ? len : (uint)-len;
+        pos[axis] = (uint)(CubeSize(depth) * factor);
         return pos;
     }
 
@@ -255,9 +255,9 @@ public struct CubePos {
     public static CubePos operator &(CubePos a, CubePos b)
         => new CubePos(a.x & b.x, a.y & b.y, a.z & b.z);
     public static CubePos operator >>(CubePos a, int b)
-        => new CubePos(a.x >> b, a.y >> b, a.z >> b);
+        => b < 0 ? (a << -b) : new CubePos(a.x >> b, a.y >> b, a.z >> b);
     public static CubePos operator <<(CubePos a, int b)
-        => new CubePos(a.x << b, a.y << b, a.z << b);
+        => b < 0 ? (a >> -b) : new CubePos(a.x << b, a.y << b, a.z << b);
     public static bool operator <(CubePos a, CubePos b)
         => a.x < b.x && a.y < b.y && a.z < b.z;
     public static bool operator >(CubePos a, CubePos b)
