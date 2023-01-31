@@ -82,15 +82,13 @@ public static class CubeEdit {
     /// <returns>A new root cube with the function applied to each cube in the box.</returns>
     private static Cube BoxApply(Cube cube, CubePos minPos, CubePos maxPos, CubeCallback func,
             int faceAxis = -1, CubePos cubePos = new CubePos(), int cubeDepth = 0) {
-        if (cubeDepth > 0) {
-            var cubePosMax = cubePos + CubePos.FromCubeSize(cubeDepth);
-            if (!(cubePosMax > minPos && cubePos < maxPos))
-                return cube; // outside box
-            if (faceAxis != -1) cubePosMax[faceAxis] = cubePos[faceAxis] + 1;
-            if (cubePos >= minPos && cubePosMax <= maxPos) {
-                if (func(ref cube, cubePos, cubeDepth))
-                    return cube;
-            }
+        var cubePosMax = cubePos + CubePos.FromCubeSize(cubeDepth, -1);
+        if (!(cubePosMax >= minPos && cubePos < maxPos))
+            return cube; // outside box
+        if (faceAxis != -1) cubePosMax[faceAxis] = cubePos[faceAxis];
+        if (cubePos >= minPos && cubePosMax < maxPos) {
+            if (func(ref cube, cubePos, cubeDepth))
+                return cube;
         }
         Cube.Branch newBranch = (cube is Cube.BranchImmut branch) ? branch.Val
             : new Cube.Branch(cube);

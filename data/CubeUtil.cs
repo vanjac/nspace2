@@ -122,6 +122,7 @@ public struct CubePos {
     /// <param name="depth">Depth of the cube relative to root.</param>
     /// <returns>Size of the cube relative to root.</returns>
     public static uint CubeSize(int depth) {
+        if (depth <= 0) return 0;
         return 1u << (32 - depth);
     }
 
@@ -129,9 +130,10 @@ public struct CubePos {
     /// Construct a CubePos with all coordinates equal to CubeSize(depth)
     /// </summary>
     /// <param name="depth">Depth of the cube relative to root.</param>
+    /// <param name="offset">Size offset.</param>
     /// <returns>CubePos with all coordinates equal to the cube size.</returns>
-    public static CubePos FromCubeSize(int depth) {
-        return new CubePos(CubeSize(depth));
+    public static CubePos FromCubeSize(int depth, int offset = 0) {
+        return new CubePos(CubeSize(depth) + (uint)offset);
     }
 
     /// <summary>
@@ -201,7 +203,7 @@ public struct CubePos {
     /// <param name="model">Model to use for transformation.</param>
     /// <returns>Cube position in root coordinates.</returns>
     public readonly CubePos ToRootClamped(CubeModel model) {
-        return Clamp(model.rootPos, model.rootPos + FromCubeSize(model.rootDepth - 1))
+        return Clamp(model.rootPos, model.rootPos + FromCubeSize(model.rootDepth, -1))
             .ToRoot(model);
     }
 
