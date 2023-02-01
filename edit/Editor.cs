@@ -20,6 +20,12 @@ public class Editor : Spatial {
     [NodeRef("EditorCamera")] private EditorCamera nCam = null;
     [NodeRef("/root/Spatial/EditorGUI")] private EditorGUI nGUI;
 
+    private struct Clipping {
+        public Cube root;
+        public CubePos min, max; // in root coordinates!
+        public int rootDepth;
+    }
+
     private Guid[] materialGuids;
     private Dictionary<Guid, Material> materialsDict = new Dictionary<Guid, Material>();
 
@@ -30,7 +36,7 @@ public class Editor : Spatial {
     private (string, ulong)? adjustOp;
 
     private CubePos selStartMin, selStartMax;
-    private CubePos mark;
+    private Clipping clipboard;
 
     private string filePath;
 
@@ -270,15 +276,14 @@ public class Editor : Spatial {
         return modified;
     }
 
-    private bool Paste(CubePos fromPos) {
+    private bool Paste(Clipping clip) {
         if (!state.AnySelection)
             return false;
         ExpandIncludeSelection(CubePos.ZERO);
         CubeModel m = state.world.Val;
         bool modified = false;
-        m.root = Util.AssignChanged(m.root, CubeEdit.TransferBox(
-            m.root, fromPos.ToRoot(m), (state.selMax - state.selMin + fromPos).ToRoot(m),
-            m.root, state.selMin.ToRoot(m), 0), ref modified);
+        m.root = Util.AssignChanged(m.root, CubeEdit.TransferBox(clip.root, clip.min, clip.max,
+            m.root, state.selMin.ToRoot(m), clip.rootDepth - m.rootDepth), ref modified);
         if (modified)
             state.world = Immut.Create(m);
         return modified;
@@ -469,13 +474,20 @@ public class Editor : Spatial {
     }
 
     public void _OnCopyPressed() {
-        if (state.AnySelection)
-            mark = state.selMin;
+        if (!state.AnySelection)
+            return;
+        var m = state.world.Val;
+        clipboard = new Clipping {
+            root = m.root,
+            min = state.selMin.ToRootClamped(m),
+            max = state.selMax.ToRootClamped(m),
+            rootDepth = m.rootDepth,
+        };
     }
 
     public void _OnPastePressed() {
         var op = BeginOperation("Paste");
-        EndOperation(op, Paste(mark));
+        EndOperation(op, Paste(clipboard));
     }
 
     public void _OnVolumeButtonPressed(string guid) {
