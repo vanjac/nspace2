@@ -293,10 +293,14 @@ public class Editor : Spatial {
         CubePos pasteMin = state.selMin.ToRoot(m), pasteMax = state.selMax.ToRoot(m);
         CubePos step = clip.max - clip.min;
         bool modified = false;
+
         // fill selection with repeated copies
-        for (CubePos pastePos = pasteMin; pastePos[2] < pasteMax[2]; pastePos[2] += step[2]) {
-            for (pastePos[1] = pasteMin[1]; pastePos[1] < pasteMax[1]; pastePos[1] += step[1]) {
-                for (pastePos[0] = pasteMin[0]; pastePos[0] < pasteMax[0]; pastePos[0] += step[0]) {
+        CubePos pastePos = pasteMin;
+        bool loopCond(int axis) => pastePos[axis] < pasteMax[axis]
+            || (step[axis] == 0 && pastePos[axis] == pasteMax[axis]);
+        for (pastePos[2] = pasteMin[2]; loopCond(2); pastePos[2] += Math.Max(step[2], 1)) {
+            for (pastePos[1] = pasteMin[1]; loopCond(1); pastePos[1] += Math.Max(step[1], 1)) {
+                for (pastePos[0] = pasteMin[0]; loopCond(0); pastePos[0] += Math.Max(step[0], 1)) {
                     m.root = Util.AssignChanged(m.root, CubeEdit.TransferBox(clip.root,
                         clip.min, CubePos.Min(clip.max, clip.min + (pasteMax - pastePos)),
                         m.root, pastePos, clip.rootDepth - m.rootDepth), ref modified);

@@ -235,9 +235,9 @@ public struct CubePos {
     }
 
     public static CubePos Min(CubePos a, CubePos b)
-        => new CubePos(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z);
+        => new CubePos(Math.Min(a.x, b.x), Math.Min(a.y, b.y), Math.Min(a.z, b.z));
     public static CubePos Max(CubePos a, CubePos b)
-        => new CubePos(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z);
+        => new CubePos(Math.Max(a.x, b.x), Math.Max(a.y, b.y), Math.Max(a.z, b.z));
 
     public readonly override string ToString() {
         return $"<{x:X8}, {y:X8}, {z:X8}>";
