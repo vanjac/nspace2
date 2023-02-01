@@ -290,9 +290,19 @@ public class Editor : Spatial {
             return false;
         ExpandIncludeSelection(CubePos.ZERO);
         CubeModel m = state.world.Val;
+        CubePos pasteMin = state.selMin.ToRoot(m), pasteMax = state.selMax.ToRoot(m);
+        CubePos step = clip.max - clip.min;
         bool modified = false;
-        m.root = Util.AssignChanged(m.root, CubeEdit.TransferBox(clip.root, clip.min, clip.max,
-            m.root, state.selMin.ToRoot(m), clip.rootDepth - m.rootDepth), ref modified);
+        // fill selection with repeated copies
+        for (CubePos pastePos = pasteMin; pastePos[2] < pasteMax[2]; pastePos[2] += step[2]) {
+            for (pastePos[1] = pasteMin[1]; pastePos[1] < pasteMax[1]; pastePos[1] += step[1]) {
+                for (pastePos[0] = pasteMin[0]; pastePos[0] < pasteMax[0]; pastePos[0] += step[0]) {
+                    m.root = Util.AssignChanged(m.root, CubeEdit.TransferBox(clip.root,
+                        clip.min, CubePos.Min(clip.max, clip.min + (pasteMax - pastePos)),
+                        m.root, pastePos, clip.rootDepth - m.rootDepth), ref modified);
+                }
+            }
+        }
         if (modified)
             state.world = Immut.Create(m);
         return modified;
