@@ -273,6 +273,18 @@ public class Editor : Spatial {
         return modified;
     }
 
+    private void Copy() {
+        if (!state.AnySelection)
+            return;
+        var m = CubeEdit.ExpandModel(state.world, new CubePos[] { state.selMin, state.selMax }).Val;
+        clipboard = new Clipping {
+            root = m.root,
+            min = state.selMin.ToRoot(m),
+            max = state.selMax.ToRoot(m),
+            rootDepth = m.rootDepth,
+        };
+    }
+
     private bool Paste(Clipping clip) {
         if (!state.AnySelection)
             return false;
@@ -466,15 +478,7 @@ public class Editor : Spatial {
     }
 
     public void _OnCopyPressed() {
-        if (!state.AnySelection)
-            return;
-        var m = state.world.Val;
-        clipboard = new Clipping {
-            root = m.root,
-            min = state.selMin.ToRootClamped(m), // TODO this changes the origin position!!
-            max = state.selMax.ToRootClamped(m),
-            rootDepth = m.rootDepth,
-        };
+        Copy();
     }
 
     public void _OnPastePressed() {
