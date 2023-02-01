@@ -339,7 +339,7 @@ public static class CubeEdit {
                 // update min sides
                 for (int i = 0; i < 2; i++) {
                     int sideAxis = (extAxis + i + 1) % 3;
-                    if (fromPos[sideAxis] != rectMin[sideAxis])
+                    if (maxPos[sideAxis] != rectMin[sideAxis])
                         continue; // not bordering min bounds
                     CubePos sideAxisOff = CubePos.FromAxisSize(sideAxis, depth);
                     // transfer existing face...
@@ -359,6 +359,8 @@ public static class CubeEdit {
         // max edges
         for (int i = 0; i < 2; i++) {
             int sideAxis = (extAxis + i + 1) % 3;
+            if (rectMin[sideAxis] == rectMax[sideAxis])
+                continue; // flat along this axis
             CubePos sideAxisOff = CubePos.FromAxisSize(sideAxis, extDepth);
             MaxSideBoxApply(srcRoot, rectMin, rectMax, (1 << extAxis) | (1 << sideAxis),
                 (ref Cube maxCubeRef, CubePos maxPos, int depth) => {
