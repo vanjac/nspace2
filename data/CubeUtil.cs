@@ -203,8 +203,8 @@ public struct CubePos {
     /// <param name="model">Model to use for transformation.</param>
     /// <returns>Cube position in root coordinates.</returns>
     public readonly CubePos ToRootClamped(CubeModel model) {
-        return Clamp(model.rootPos, model.rootPos + FromCubeSize(model.rootDepth, -1))
-            .ToRoot(model);
+        CubePos minPos = model.rootPos, maxPos = model.rootPos + FromCubeSize(model.rootDepth, -1);
+        return Min(Max(this, minPos), maxPos).ToRoot(model);
     }
 
     /// <summary>
@@ -226,21 +226,18 @@ public struct CubePos {
         return (int)(((x >> 31) & 1) | ((y >> 30) & 2) | ((z >> 29) & 4));
     }
 
-    private static uint Clamp(uint value, uint min, uint max) {
-        if (value < min) return min;
-        if (value > max) return max;
-        return value;
+    /// <summary>
+    /// Count the number of non-zero coordinates.
+    /// </summary>
+    /// <returns>Number of non-zero coordinates (0 - 3)</returns>
+    public readonly int Dimension() {
+        return ((x != 0) ? 1 : 0) + ((y != 0) ? 1 : 0) + ((z != 0) ? 1 : 0);
     }
 
-    /// <summary>
-    /// Clamp all coordinates to be within the given range.
-    /// </summary>
-    /// <param name="min">Minimum value of each coordinate (inclusive).</param>
-    /// <param name="max">Maximum value of each coordinate (inclusive).</param>
-    /// <returns>Position clamped to the range.</returns>
-    public readonly CubePos Clamp(CubePos min, CubePos max) {
-        return new CubePos(Clamp(x, min.x, max.x), Clamp(y, min.y, max.y), Clamp(z, min.z, max.z));
-    }
+    public static CubePos Min(CubePos a, CubePos b)
+        => new CubePos(a.x < b.x ? a.x : b.x, a.y < b.y ? a.y : b.y, a.z < b.z ? a.z : b.z);
+    public static CubePos Max(CubePos a, CubePos b)
+        => new CubePos(a.x > b.x ? a.x : b.x, a.y > b.y ? a.y : b.y, a.z > b.z ? a.z : b.z);
 
     public readonly override string ToString() {
         return $"<{x:X8}, {y:X8}, {z:X8}>";

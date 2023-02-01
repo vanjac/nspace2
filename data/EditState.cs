@@ -1,9 +1,5 @@
 using Godot;
 
-public enum SelectMode {
-    Faces, Cubes
-}
-
 public struct EditState {
     public Immut<CubeModel> world;
     public int editDepth;
@@ -12,7 +8,6 @@ public struct EditState {
     public Vector3 camFocus;
     public float camYaw, camPitch, camZoom;
 
-    public SelectMode selMode;
     public CubePos selMin, selMax; // no selection if equal
     public int selAxis; // Faces only
     public bool selDir; // Faces only
@@ -20,5 +15,4 @@ public struct EditState {
     public void ClearSelection() {
         selMax = selMin;
     }
-    public bool HasSelection(SelectMode mode) => selMode == mode && AnySelection;
 }

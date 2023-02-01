@@ -14,14 +14,13 @@ public class EditorGUI : Node {
     public PopupMenu nViewPopup;
     [NodeRef("Toolbar/Stats/Label")] public Label nStats = null;
     [NodeRef("Toolbar/Perf/Label")] public Label nPerf = null;
-    [NodeRef("LeftPanel/TabContainer")] public TabContainer nTabContainer = null;
-    [NodeRef("LeftPanel/TabContainer/Cubes/Volumes/Empty")] public Button nEmptyVolume = null;
-    [NodeRef("LeftPanel/TabContainer/Cubes/Volumes/Solid")] public Button nSolidVolume = null;
-    [NodeRef("LeftPanel/TabContainer/Cubes/Volumes/Fluid")] public Button nFluidVolume = null;
-    [NodeRef("LeftPanel/TabContainer/Cubes/Move")] public Button nMove = null;
-    [NodeRef("LeftPanel/TabContainer/Cubes/Copy")] public Button nCopy = null;
-    [NodeRef("LeftPanel/TabContainer/Cubes/Paste")] public Button nPaste = null;
-    [NodeRef("LeftPanel/Materials/Grid")] public Container nMaterialsGrid = null;
+    [NodeRef("TabContainer/Edit/Volumes/Empty")] public Button nEmptyVolume = null;
+    [NodeRef("TabContainer/Edit/Volumes/Solid")] public Button nSolidVolume = null;
+    [NodeRef("TabContainer/Edit/Volumes/Fluid")] public Button nFluidVolume = null;
+    [NodeRef("TabContainer/Edit/Move")] public Button nMove = null;
+    [NodeRef("TabContainer/Edit/Copy")] public Button nCopy = null;
+    [NodeRef("TabContainer/Edit/Paste")] public Button nPaste = null;
+    [NodeRef("TabContainer/Paint/Grid")] public Container nMaterialsGrid = null;
     [NodeRef("SaveDialog")] public FileDialog nSaveDialog = null;
     [NodeRef("OpenDialog")] public FileDialog nOpenDialog = null;
     [NodeRef("DeleteDialog")] public FileDialog nDeleteDialog = null;
@@ -39,7 +38,6 @@ public class EditorGUI : Node {
 
     public void UpdateState(EditState state, Undoer<EditState> undo) {
         nGridSize.Text = DepthString(state.editDepth);
-        nTabContainer.CurrentTab = (int)state.selMode;
         nUndo.Disabled = !undo.CanUndo();
         nRedo.Disabled = !undo.CanRedo();
     }

@@ -151,7 +151,7 @@ public class CubeSerialize {
         writer.Write(editor.camYaw);
         writer.Write(editor.camPitch);
         writer.Write(editor.camZoom);
-        writer.Write((ushort)editor.selMode);
+        writer.Write((ushort)1); // previously selMode
         writer.Write((ushort)(editor.selAxis * 2 + (editor.selDir ? 1 : 0)));
         Serialize(writer, editor.selMin);
         Serialize(writer, editor.selMax);

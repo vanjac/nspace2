@@ -146,24 +146,26 @@ margin_top = 13.0
 margin_right = 7.0
 margin_bottom = 27.0
 
-[node name="LeftPanel" type="VBoxContainer" parent="."]
+[node name="TabContainer" type="TabContainer" parent="."]
+modulate = Color( 1, 1, 1, 0.784314 )
 anchor_bottom = 1.0
 margin_right = 160.0
 
-[node name="TabContainer" type="TabContainer" parent="LeftPanel"]
-modulate = Color( 1, 1, 1, 0.784314 )
-margin_right = 160.0
-margin_bottom = 36.0
-
-[node name="Faces" type="Control" parent="LeftPanel/TabContainer"]
+[node name="Paint" type="ScrollContainer" parent="TabContainer"]
 anchor_right = 1.0
 anchor_bottom = 1.0
 margin_left = 4.0
 margin_top = 32.0
 margin_right = -4.0
 margin_bottom = -4.0
+size_flags_vertical = 3
 
-[node name="Cubes" type="VBoxContainer" parent="LeftPanel/TabContainer"]
+[node name="Grid" type="GridContainer" parent="TabContainer/Paint"]
+margin_right = 152.0
+size_flags_horizontal = 3
+columns = 2
+
+[node name="Edit" type="VBoxContainer" parent="TabContainer"]
 visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -172,32 +174,32 @@ margin_top = 32.0
 margin_right = -4.0
 margin_bottom = -4.0
 
-[node name="Volumes" type="HBoxContainer" parent="LeftPanel/TabContainer/Cubes"]
+[node name="Volumes" type="HBoxContainer" parent="TabContainer/Edit"]
 margin_right = 152.0
 margin_bottom = 40.0
 rect_min_size = Vector2( 0, 40 )
 
-[node name="Empty" type="Button" parent="LeftPanel/TabContainer/Cubes/Volumes"]
+[node name="Empty" type="Button" parent="TabContainer/Edit/Volumes"]
 margin_right = 52.0
 margin_bottom = 40.0
 size_flags_horizontal = 3
 text = "Empty"
 
-[node name="Solid" type="Button" parent="LeftPanel/TabContainer/Cubes/Volumes"]
+[node name="Solid" type="Button" parent="TabContainer/Edit/Volumes"]
 margin_left = 56.0
 margin_right = 102.0
 margin_bottom = 40.0
 size_flags_horizontal = 3
 text = "Solid"
 
-[node name="Fluid" type="Button" parent="LeftPanel/TabContainer/Cubes/Volumes"]
+[node name="Fluid" type="Button" parent="TabContainer/Edit/Volumes"]
 margin_left = 106.0
 margin_right = 152.0
 margin_bottom = 40.0
 size_flags_horizontal = 3
 text = "Fluid"
 
-[node name="Move" type="Button" parent="LeftPanel/TabContainer/Cubes"]
+[node name="Move" type="Button" parent="TabContainer/Edit"]
 margin_top = 44.0
 margin_right = 152.0
 margin_bottom = 64.0
@@ -205,28 +207,17 @@ toggle_mode = true
 pressed = true
 text = "Move"
 
-[node name="Copy" type="Button" parent="LeftPanel/TabContainer/Cubes"]
+[node name="Copy" type="Button" parent="TabContainer/Edit"]
 margin_top = 68.0
 margin_right = 152.0
 margin_bottom = 88.0
 text = "Copy"
 
-[node name="Paste" type="Button" parent="LeftPanel/TabContainer/Cubes"]
+[node name="Paste" type="Button" parent="TabContainer/Edit"]
 margin_top = 92.0
 margin_right = 152.0
 margin_bottom = 112.0
 text = "Paste"
-
-[node name="Materials" type="ScrollContainer" parent="LeftPanel"]
-margin_top = 40.0
-margin_right = 160.0
-margin_bottom = 360.0
-size_flags_vertical = 3
-
-[node name="Grid" type="GridContainer" parent="LeftPanel/Materials"]
-margin_right = 160.0
-size_flags_horizontal = 3
-columns = 2
 
 [node name="SaveDialog" type="FileDialog" parent="."]
 margin_right = 400.0

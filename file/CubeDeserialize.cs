@@ -120,7 +120,7 @@ public class CubeDeserialize {
         editor.camYaw = reader.ReadSingle();
         editor.camPitch = reader.ReadSingle();
         editor.camZoom = reader.ReadSingle();
-        editor.selMode = (SelectMode)reader.ReadUInt16();
+        reader.ReadUInt16(); // previously selMode
         ushort selIdx = reader.ReadUInt16();
         editor.selAxis = selIdx / 2;
         editor.selDir = (selIdx % 2) == 1;

@@ -17,6 +17,7 @@ public class Editor : Spatial {
     [NodeRef("MoveAdjust/X")] private AdjustHandle nMoveAdjustX = null;
     [NodeRef("MoveAdjust/Y")] private AdjustHandle nMoveAdjustY = null;
     [NodeRef("MoveAdjust/Z")] private AdjustHandle nMoveAdjustZ = null;
+    private AdjustHandle[] nMoveAdjustAxes;
     [NodeRef("EditorCamera")] private EditorCamera nCam = null;
     [NodeRef("/root/Spatial/EditorGUI")] private EditorGUI nGUI;
 
@@ -42,6 +43,7 @@ public class Editor : Spatial {
 
     public override void _Ready() {
         NodeRefAttribute.GetAllNodes(this);
+        nMoveAdjustAxes = new AdjustHandle[] { nMoveAdjustX, nMoveAdjustY, nMoveAdjustZ };
         nGUI.Init();
 
         // https://www.reddit.com/r/godot/comments/d459x2/finally_figured_out_how_to_enable_wireframes_in/
@@ -55,7 +57,6 @@ public class Editor : Spatial {
         nGUI.nFilePopup.Connect("id_pressed", this, nameof(_OnFileMenuItemPressed));
         nGUI.nViewPopup.Connect("id_pressed", this, nameof(_OnViewMenuItemPressed),
             new GDArray { nGUI.nViewPopup });
-        nGUI.nTabContainer.Connect("tab_changed", this, nameof(_OnTabChanged));
         nGUI.nEmptyVolume.Connect("pressed", this, nameof(_OnVolumeButtonPressed),
             new GDArray { VOLUME_EMPTY.ToString() });
         nGUI.nSolidVolume.Connect("pressed", this, nameof(_OnVolumeButtonPressed),
@@ -109,9 +110,8 @@ public class Editor : Spatial {
         nCam.Update(state);
 
         nExtrudeAdjust.Update();
-        nMoveAdjustX.Update();
-        nMoveAdjustY.Update();
-        nMoveAdjustZ.Update();
+        foreach (var adjust in nMoveAdjustAxes)
+            adjust.Update();
 
         nGUI.UpdateState(state, undo);
         nCubeMesh.GridSize = CubeUtil.ModelCubeSize(state.editDepth);
@@ -131,37 +131,46 @@ public class Editor : Spatial {
     private void UpdateSelection() {
         nRectSelection.Visible = false;
         nBoxSelection.Visible = false;
-        if (state.HasSelection(SelectMode.Cubes)) {
+        var selSize = state.selMax - state.selMin;
+        if (selSize.Dimension() == 3) {
             nBoxSelection.Visible = true;
             nBoxSelection.Translation = state.selMin.ToModelPos();
-            nBoxSelection.Scale = (state.selMax - state.selMin).ToModelSize();
-        } else if (state.HasSelection(SelectMode.Faces)) {
+            nBoxSelection.Scale = selSize.ToModelSize();
+        } else if (selSize.Dimension() == 2) {
+            var axis = selSize[0] == 0 ? 0 : selSize[1] == 0 ? 1 : 2; // bleh
             nRectSelection.Visible = true;
             nRectSelection.Translation = state.selMin.ToModelPos();
-            nRectSelection.Rotation = AxisRotation(state.selAxis);
-            int s = state.selAxis + 1, t = state.selAxis + 2;
-            Vector3 size = (state.selMax - state.selMin).ToModelSize();
-            size = CubeUtil.CycleVector(size, 5 - state.selAxis);
+            nRectSelection.Rotation = AxisRotation(axis);
+            int s = axis + 1, t = axis + 2;
+            Vector3 size = selSize.ToModelSize();
+            size = CubeUtil.CycleVector(size, 5 - axis);
             size.z = state.selDir ? 1 : -1;
             nRectSelection.Scale = size;
         }
     }
 
     private void UpdateAdjustPos() {
-        nExtrudeAdjust.Enabled = false;
-        nMoveAdjustX.Enabled = nMoveAdjustY.Enabled = nMoveAdjustZ.Enabled = false;
-        Vector3 center = (state.selMin.ToModelPos() + state.selMax.ToModelPos()) / 2;
-        float snap = CubeUtil.ModelCubeSize(state.editDepth);
-        if (state.HasSelection(SelectMode.Cubes)) {
-            nMoveAdjustX.Enabled = nMoveAdjustY.Enabled = nMoveAdjustZ.Enabled = true;
-            nMoveAdjust.Translation = center;
-            nMoveAdjustX.snap = nMoveAdjustY.snap = nMoveAdjustZ.snap = snap;
-        } else if (state.HasSelection(SelectMode.Faces)) {
+        foreach (var adjust in nMoveAdjustAxes)
+            adjust.Enabled = state.AnySelection;
+
+        if ((state.selMax - state.selMin).Dimension() == 2) {
             nExtrudeAdjust.Enabled = true;
-            nExtrudeAdjust.Translation = center;
             nExtrudeAdjust.Rotation = AxisRotation(state.selAxis, state.selDir);
-            nExtrudeAdjust.snap = snap;
+            nMoveAdjustAxes[state.selAxis].Enabled = false;
+        } else {
+            nExtrudeAdjust.Enabled = false;
         }
+        if (!state.AnySelection)
+            return;
+
+        Vector3 center = (state.selMin.ToModelPos() + state.selMax.ToModelPos()) / 2;
+        nMoveAdjust.Translation = center;
+        nExtrudeAdjust.Translation = center;
+
+        float snap = CubeUtil.ModelCubeSize(state.editDepth);
+        nExtrudeAdjust.snap = snap;
+        foreach (var adjust in nMoveAdjustAxes)
+            adjust.snap = snap;
     }
 
     private Vector3 AxisRotation(int axis, bool dir = true) {
@@ -186,34 +195,22 @@ public class Editor : Spatial {
         var posMax = pos + FaceSize(axis);
         if (state.AnySelection
                 && (nGUI.AddSelectEnabled ^ Input.IsKeyPressed((int)KeyList.Shift))) {
-            if (state.selMode == SelectMode.Faces && axis != state.selAxis)
-                return;
-            (selStartMin, selStartMax) = SelectExpand(state.selMin, state.selMax, pos, posMax);
+            selStartMin = CubePos.Min(state.selMin, pos);
+            selStartMax = CubePos.Max(state.selMax, posMax);
         } else {
             state.selAxis = axis;
             state.selDir = dir;
             (selStartMin, selStartMax) = (pos, posMax);
         }
-        state.selMin = selStartMin;
-        state.selMax = selStartMax;
+        (state.selMin, state.selMax) = (selStartMin, selStartMax);
     }
 
     private void SelectDrag(CubePos pos, int axis) {
-        if (!state.AnySelection || (state.selMode == SelectMode.Faces && axis != state.selAxis))
+        if (!state.AnySelection)
             return;
         var posMax = pos + FaceSize(axis);
-        (state.selMin, state.selMax) = SelectExpand(selStartMin, selStartMax, pos, posMax);
-    }
-
-    private (CubePos, CubePos) SelectExpand(CubePos oldMin, CubePos oldMax,
-            CubePos addMin, CubePos addMax) {
-        for (int i = 0; i < 3; i++) {
-            if (state.selMode == SelectMode.Faces && i == state.selAxis)
-                continue;
-            if (addMin[i] < oldMin[i]) oldMin[i] = addMin[i];
-            if (addMax[i] > oldMax[i]) oldMax[i] = addMax[i];
-        }
-        return (oldMin, oldMax);
+        state.selMin = CubePos.Min(selStartMin, pos);
+        state.selMax = CubePos.Max(selStartMax, posMax);
     }
 
     private void MoveSelection(int axis, int count) {
@@ -363,6 +360,12 @@ public class Editor : Spatial {
     }
 
     private void MoveAdjust(int axis, int units) {
+        if (!nGUI.MoveEnabled) {
+            MoveSelection(axis, units);
+            UpdateState(false);
+            return;
+        }
+
         if (adjustOp == null)
             adjustOp = BeginOperation("Move");
         for (; units > 0; units--) {
@@ -440,12 +443,7 @@ public class Editor : Spatial {
     }
 
     public void _OnMoveAdjust(int units, int axis) {
-        if (nGUI.MoveEnabled) {
-            MoveAdjust(axis, units);
-        } else {
-            MoveSelection(axis, units);
-            UpdateState(nGUI.MoveEnabled);
-        }
+        MoveAdjust(axis, units);
     }
 
     public void _OnAdjustEnd() {
@@ -467,19 +465,13 @@ public class Editor : Spatial {
         UpdateState(false);
     }
 
-    public void _OnTabChanged(int tab) {
-        state.selMode = (SelectMode)tab;
-        state.ClearSelection();
-        UpdateState(false);
-    }
-
     public void _OnCopyPressed() {
         if (!state.AnySelection)
             return;
         var m = state.world.Val;
         clipboard = new Clipping {
             root = m.root,
-            min = state.selMin.ToRootClamped(m),
+            min = state.selMin.ToRootClamped(m), // TODO this changes the origin position!!
             max = state.selMax.ToRootClamped(m),
             rootDepth = m.rootDepth,
         };
