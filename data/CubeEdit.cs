@@ -246,8 +246,8 @@ public static class CubeEdit {
     /// Copy cubes in a box from one location to another, along with surrounding faces.
     /// </summary>
     /// <param name="srcRoot">The root cube in which the box to be copied exists.</param>
-    /// <param name="srcMin">Minimum coordinates of the box the be copied.</param>
-    /// <param name="srcMax">Maximum coordinates of the box the be copied.</param>
+    /// <param name="srcMin">Minimum coordinates of the box to be copied.</param>
+    /// <param name="srcMax">Maximum coordinates of the box to be copied.</param>
     /// <param name="dstRoot">The root which will be modified to place the copied cubes.</param>
     /// <param name="dstMin">Location to copy the cubes.</param>
     /// <param name="depthDiff">Difference in depth between srcRoot and dstRoot.</param>
@@ -259,10 +259,10 @@ public static class CubeEdit {
         for (int axis = 0; axis < 3; axis++) {
             MaxSideBoxApply(srcRoot, srcMin, srcMax, 1 << axis,
                 (ref Cube srcCubeRef, CubePos srcPos, int srcDepth) => {
-                    var srcCube = srcCubeRef; // can't use ref inside nested lambda
                     (CubePos dstPos, int dstDepth) = calcDst(srcPos, srcDepth);
                     if (!dstPos.Floor(dstDepth).Equals(dstPos))
                         return false; // not aligned to grid
+                    var srcCube = srcCubeRef; // can't use ref inside nested lambda
                     // transfer max face from cube at srcPos
                     CubePos srcAdj = srcPos - CubePos.FromAxisSize(axis, srcDepth);
                     dstRoot = CubeApply(dstRoot, dstPos, dstDepth,
@@ -277,7 +277,7 @@ public static class CubeEdit {
             Cube copied = srcCube;
             for (int axis = 0; axis < 3; axis++) {
                 if (srcPos[axis] != srcMin[axis])
-                    continue; // bordering min bounds
+                    continue; // not bordering min bounds
                 // transfer min face from existing cube at dstPos
                 CubePos dstAdj = dstPos - CubePos.FromAxisSize(axis, dstDepth);
                 copied = TransferFaces(GetCube(dstRoot, dstAdj, dstDepth),
@@ -294,66 +294,93 @@ public static class CubeEdit {
     }
 
     /// <summary>
-    /// Extrude the side of one cube into the adjacent cube, including any faces/volumes along that
-    /// side.
+    /// Extrude the sides of all cubes in a rectangle into the adjacent cubes, including any
+    /// faces/volumes along those sides.
     /// </summary>
-    /// <param name="srcRoot">The root cube in which the side to be extruded exists.</param>
+    /// <param name="srcRoot">The root cube in which the rectangle to be extruded exists.</param>
     /// <param name="dstRoot">
-    /// The root cube which will be modified to add the extruded cube and faces.
+    /// The root cube which will be modified to add the extruded cubes and faces.
     /// </param>
-    /// <param name="pos">The position of the cube side to be extruded</param>
-    /// <param name="depth">Depth of the extruded cube in the tree</param>
-    /// <param name="axis">Axis of the side to be extruded (on the negative side)</param>
-    /// <param name="dir">
-    /// If true, side will be extruded in the positive direction along the axis; if false, negative.
+    /// <param name="rectMin">Minimum coordinates of the rectangle to be extruded.</param>
+    /// <param name="rectMax">Maximum coordinates of the rectangle to be extruded.</param>
+    /// <param name="extDepth">Depth of the distance to extrude in the tree.</param>
+    /// <param name="extAxis">Axis of the sides to be extruded (on the negative side)</param>
+    /// <param name="extDir">
+    /// If true, rect will be extruded in the positive direction along the axis; if false, negative.
     /// </param>
-    /// <returns>dstRoot with the side from srcRoot extruded.</returns>
-    public static Cube Extrude(Cube srcRoot, Cube dstRoot,
-            CubePos pos, int depth, int axis, bool dir) {
-        // TODO: split into smaller functions
-        CubePos axisOff = CubePos.FromAxisSize(axis, depth);
-        CubePos minPos = pos - axisOff;
-        CubePos fromPos = dir ? minPos : pos, toPos = dir ? pos : minPos;
-        Cube minCube = GetCube(srcRoot, minPos, depth), maxCube = GetCube(srcRoot, pos, depth);
-        Cube fromCube = dir ? minCube : maxCube, toCube = dir ? maxCube : minCube;
+    /// <returns>dstRoot with the rectangle from srcRoot extruded.</returns>
+    public static Cube ExtrudeRect(Cube srcRoot, Cube dstRoot, CubePos rectMin, CubePos rectMax,
+            int extDepth, int extAxis, bool extDir) {
+        // TODO call TransferBox
+        if (extDir)
+            rectMax[extAxis] = rectMin[extAxis];
+        CubePos extAxisOff = CubePos.FromAxisSize(extAxis, extDepth);
+        int sideChildI = extDir ? (1 << extAxis) : 0;
+        MaxSideBoxApply(srcRoot, rectMin, rectMax, 1 << extAxis,
+            (ref Cube maxCubeRef, CubePos maxPos, int depth) => {
+                if (depth != extDepth)
+                    return depth > extDepth; // TODO!
+                CubePos minPos = maxPos - extAxisOff;
+                CubePos fromPos = extDir ? minPos : maxPos, toPos = extDir ? maxPos : minPos;
+                Cube minCube = GetCube(srcRoot, minPos, depth), maxCube = maxCubeRef;
+                Cube fromCube = extDir ? minCube : maxCube, toCube = extDir ? maxCube : minCube;
 
-        Cube extruded = MakeExtruded(fromCube, axis, dir);
-        if (dir) {
-            dstRoot = CubeApply(dstRoot, toPos + axisOff, depth,
-                c => TransferFaces(minCube, maxCube, c, axis));
-        } else {
-            // extruded cube completely replaces toCube, so transfer faces from that as well
-            extruded = TransferFaces(GetCube(srcRoot, toPos - axisOff, depth), toCube,
-                extruded, axis);
-            extruded = TransferFaces(minCube, maxCube, extruded, axis);
-        }
-        // update other 4 faces
-        // TODO skip if adjacent selection
-        int sideChildI = dir ? (1 << axis) : 0;
-        for (int i = 0; i < 2; i++) {
-            int sideAxis = (axis + i + 1) % 3;
-            CubePos sideAxisOff = CubePos.FromAxisSize(sideAxis, depth);
-            // transfer existing face on min side...
-            extruded = TransferFaces(GetCube(srcRoot, toPos - sideAxisOff, depth), toCube,
-                extruded, sideAxis);
-            // min face, extrude front
-            extruded = TransferExtendedEdge(minCube, maxCube, extruded,
-                srcChildI: 0, srcFaceAxis: axis, dstFaceAxis: sideAxis, axis);
-            // extrude side
-            extruded = TransferExtendedEdge(
-                GetCube(srcRoot, fromPos - sideAxisOff, depth), fromCube, extruded,
-                srcChildI: sideChildI, srcFaceAxis: sideAxis, dstFaceAxis: sideAxis, axis);
-            dstRoot = CubeApply(dstRoot, toPos + sideAxisOff, depth, c => {
-                // max face, extrude front
-                c = TransferExtendedEdge(minCube, maxCube, c,
-                    srcChildI: 1 << sideAxis, srcFaceAxis: axis, dstFaceAxis: sideAxis, axis);
-                // extrude side
-                return TransferExtendedEdge(
-                    fromCube, GetCube(srcRoot, fromPos + sideAxisOff, depth), c,
-                    srcChildI: sideChildI, srcFaceAxis: sideAxis, dstFaceAxis: sideAxis, axis);
+                Cube extruded = MakeExtruded(fromCube, extAxis, extDir);
+                // transfer front face (TODO: some of this could be handled by TransferBox instead)
+                if (extDir) {
+                    dstRoot = CubeApply(dstRoot, toPos + extAxisOff, depth,
+                        c => TransferFaces(minCube, maxCube, c, extAxis)); // TODO don't do this!
+                } else {
+                    // extruded cube completely replaces toCube, so transfer faces from that as well
+                    extruded = TransferFaces(GetCube(srcRoot, toPos - extAxisOff, depth), toCube,
+                        extruded, extAxis);
+                    extruded = TransferFaces(minCube, maxCube, extruded, extAxis);
+                }
+                // update min sides
+                for (int i = 0; i < 2; i++) {
+                    int sideAxis = (extAxis + i + 1) % 3;
+                    if (fromPos[sideAxis] != rectMin[sideAxis])
+                        continue; // not bordering min bounds
+                    CubePos sideAxisOff = CubePos.FromAxisSize(sideAxis, depth);
+                    // transfer existing face...
+                    extruded = TransferFaces(GetCube(srcRoot, toPos - sideAxisOff, depth), toCube,
+                        extruded, sideAxis);
+                    // extrude front
+                    extruded = TransferExtendedEdge(minCube, maxCube, extruded,
+                        srcChildI: 0, srcFaceAxis: extAxis, dstFaceAxis: sideAxis, extAxis);
+                    // extrude side
+                    extruded = TransferExtendedEdge(GetCube(srcRoot, fromPos - sideAxisOff, depth),
+                        fromCube, extruded, srcChildI: sideChildI,
+                        srcFaceAxis: sideAxis, dstFaceAxis: sideAxis, extAxis);
+                }
+                dstRoot = PutCube(dstRoot, toPos, depth, extruded);
+                return true;
             });
+        // max edges
+        for (int i = 0; i < 2; i++) {
+            int sideAxis = (extAxis + i + 1) % 3;
+            CubePos sideAxisOff = CubePos.FromAxisSize(sideAxis, extDepth);
+            MaxSideBoxApply(srcRoot, rectMin, rectMax, (1 << extAxis) | (1 << sideAxis),
+                (ref Cube maxCubeRef, CubePos maxPos, int depth) => {
+                    if (depth != extDepth)
+                        return depth > extDepth; // TODO!
+                    CubePos minPos = maxPos - extAxisOff;
+                    CubePos toPos = extDir ? maxPos : minPos;
+                    Cube minAdj = GetCube(srcRoot, minPos - sideAxisOff, depth);
+                    Cube maxAdj = GetCube(srcRoot, maxPos - sideAxisOff, depth);
+                    Cube fromCube = extDir ? GetCube(srcRoot, minPos, depth) : maxCubeRef;
+                    Cube fromAdj = extDir ? minAdj : maxAdj;
+                    dstRoot = CubeApply(dstRoot, toPos, depth, c => {
+                        // extrude front
+                        c = TransferExtendedEdge(minAdj, maxAdj, c, srcChildI: 1 << sideAxis,
+                            srcFaceAxis: extAxis, dstFaceAxis: sideAxis, extAxis);
+                        // extrude side
+                        return TransferExtendedEdge(fromAdj, fromCube, c, srcChildI: sideChildI,
+                            srcFaceAxis: sideAxis, dstFaceAxis: sideAxis, extAxis);
+                    });
+                    return true;
+                });
         }
-        dstRoot = PutCube(dstRoot, toPos, depth, extruded);
         return dstRoot;
     }
 

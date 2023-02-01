@@ -21,14 +21,4 @@ public struct EditState {
         selMax = selMin;
     }
     public bool HasSelection(SelectMode mode) => selMode == mode && AnySelection;
-    public bool IsSelected(CubePos pos) {
-        for (int i = 0; i < 3; i++) {
-            if (selMode == SelectMode.Faces && i == selAxis) {
-                if (pos[i] != selMin[i]) return false;
-            }
-            else if (pos[i] < selMin[i]) return false;
-            else if (pos[i] >= selMax[i]) return false;
-        }
-        return true;
-    }
 }

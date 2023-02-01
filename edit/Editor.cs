@@ -176,33 +176,6 @@ public class Editor : Spatial {
              + CubePos.FromAxisSize(axis + 2, state.editDepth);
     }
 
-    private IEnumerable<CubePos> IterateSelectedCubes() {
-        if (!state.HasSelection(SelectMode.Cubes))
-            yield break;
-        uint size = CubePos.CubeSize(state.editDepth);
-        var pos = CubePos.ZERO;
-        for (pos[2] = state.selMin[2]; pos[2] < state.selMax[2]; pos[2] += size) {
-            for (pos[1] = state.selMin[1]; pos[1] < state.selMax[1]; pos[1] += size) {
-                for (pos[0] = state.selMin[0]; pos[0] < state.selMax[0]; pos[0] += size) {
-                    yield return pos;
-                }
-            }
-        }
-    }
-
-    private IEnumerable<CubePos> IterateSelectedFaces() {
-        if (!state.HasSelection(SelectMode.Faces))
-            yield break;
-        int s = state.selAxis + 1, t = state.selAxis + 2;
-        uint size = CubePos.CubeSize(state.editDepth);
-        var pos = state.selMin;
-        for (pos[s] = state.selMin[s]; pos[s] < state.selMax[s]; pos[s] += size) {
-            for (pos[t] = state.selMin[t]; pos[t] < state.selMax[t]; pos[t] += size) {
-                yield return pos;
-            }
-        }
-    }
-
     private void SelectStart(CubePos pos, int axis, bool dir) {
         var posMax = pos + FaceSize(axis);
         if (state.AnySelection
@@ -250,29 +223,8 @@ public class Editor : Spatial {
         return modified;
     }
 
-    private bool Extrude(bool dir) {
-        if (!state.HasSelection(SelectMode.Faces))
-            return false;
-        CubePos axisOff = CubePos.FromAxisSize(state.selAxis, state.editDepth, dir ? 1 : -1);
-        bool worldModified = ExpandIncludeSelection(axisOff);
-
-        CubeModel m = state.world.Val;
-        Cube oldRoot = m.root;
-        bool rootModified = false;
-        foreach (CubePos facePos in IterateSelectedFaces()) {
-            m.root = Util.AssignChanged(m.root, CubeEdit.Extrude(oldRoot, m.root,
-                facePos.ToRoot(m), state.RootEditDepth, state.selAxis, dir),
-                ref rootModified);
-        }
-        if (rootModified)
-            state.world = Immut.Create(m);
-
-        return worldModified | rootModified;
-    }
-
     private bool Move(int axis, bool dir) {
-        // TODO lots of copied code from Extrude
-        if (!state.HasSelection(SelectMode.Cubes))
+        if (!state.AnySelection)
             return false;
         CubePos axisOff = CubePos.FromAxisSize(axis, state.editDepth, dir ? 1 : -1);
         bool worldModified = ExpandIncludeSelection(axisOff);
@@ -283,14 +235,9 @@ public class Editor : Spatial {
         m.root = Util.AssignChanged(m.root, CubeEdit.TransferBox(
             oldRoot, state.selMin.ToRoot(m), state.selMax.ToRoot(m),
             m.root, (state.selMin + axisOff).ToRoot(m), 0), ref rootModified);
-        foreach (CubePos cubePos in IterateSelectedCubes()) {
-            if (!state.IsSelected(cubePos - axisOff)) {
-                CubePos facePos = dir ? cubePos : (cubePos - axisOff);
-                m.root = Util.AssignChanged(m.root, CubeEdit.Extrude(oldRoot, m.root,
-                    facePos.ToRoot(m), state.RootEditDepth, axis, dir),
-                    ref rootModified);
-            }
-        }
+        m.root = Util.AssignChanged(m.root, CubeEdit.ExtrudeRect(
+            oldRoot, m.root, state.selMin.ToRoot(m), state.selMax.ToRoot(m),
+            state.RootEditDepth, axis, dir), ref rootModified);
         if (rootModified)
             state.world = Immut.Create(m);
 
@@ -298,7 +245,7 @@ public class Editor : Spatial {
     }
 
     private bool SetVolume(Guid volume) {
-        if (!state.HasSelection(SelectMode.Cubes))
+        if (!state.AnySelection)
             return false;
         bool worldModified = ExpandIncludeSelection(CubePos.ZERO);
         CubeModel m = state.world.Val;
@@ -410,6 +357,30 @@ public class Editor : Spatial {
         adjustNeg.Clear();
     }
 
+    private void MoveAdjust(int axis, int units) {
+        if (adjustOp == null)
+            adjustOp = BeginOperation("Move");
+        for (; units > 0; units--) {
+            if (adjustNeg.Count != 0) {
+                state.world = adjustNeg.Pop();
+            } else {
+                adjustPos.Push(state.world);
+                Move(axis, true);
+            }
+            MoveSelection(axis, 1);
+        }
+        for (; units < 0; units++) {
+            if (adjustPos.Count != 0) {
+                state.world = adjustPos.Pop();
+            } else {
+                adjustNeg.Push(state.world);
+                Move(axis, false);
+            }
+            MoveSelection(axis, -1);
+        }
+        UpdateState(true);
+    }
+
     /* SIGNAL RECEIVERS */
 
     // TouchController...
@@ -460,52 +431,12 @@ public class Editor : Spatial {
     // AdjustHandle...
 
     public void _OnExtrudeAdjust(int units) {
-        if (adjustOp == null)
-            adjustOp = BeginOperation("Extrude");
-        for (; units > 0; units--) {
-            if (adjustNeg.Count != 0) {
-                state.world = adjustNeg.Pop();
-            } else {
-                adjustPos.Push(state.world);
-                Extrude(state.selDir);
-            }
-            MoveSelection(state.selAxis, state.selDir ? 1 : -1);
-        }
-        for (; units < 0; units++) {
-            if (adjustPos.Count != 0) {
-                state.world = adjustPos.Pop();
-            } else {
-                adjustNeg.Push(state.world);
-                Extrude(!state.selDir);
-            }
-            MoveSelection(state.selAxis, state.selDir ? -1 : 1);
-        }
-        UpdateState(true);
+        MoveAdjust(state.selAxis, state.selDir ? units : -units);
     }
 
     public void _OnMoveAdjust(int units, int axis) {
         if (nGUI.MoveEnabled) {
-            if (adjustOp == null)
-                adjustOp = BeginOperation("Move");
-            for (; units > 0; units--) {
-                if (adjustNeg.Count != 0) {
-                    state.world = adjustNeg.Pop();
-                } else {
-                    adjustPos.Push(state.world);
-                    Move(axis, true);
-                }
-                MoveSelection(axis, 1);
-            }
-            for (; units < 0; units++) {
-                if (adjustPos.Count != 0) {
-                    state.world = adjustPos.Pop();
-                } else {
-                    adjustNeg.Push(state.world);
-                    Move(axis, false);
-                }
-                MoveSelection(axis, -1);
-            }
-            UpdateState(true);
+            MoveAdjust(axis, units);
         } else {
             MoveSelection(axis, units);
             UpdateState(nGUI.MoveEnabled);
@@ -538,7 +469,7 @@ public class Editor : Spatial {
     }
 
     public void _OnCopyPressed() {
-        if (state.HasSelection(SelectMode.Cubes))
+        if (state.AnySelection)
             mark = state.selMin;
     }
 
