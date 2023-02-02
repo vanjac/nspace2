@@ -193,8 +193,7 @@ public class Editor : Spatial {
 
     private void SelectStart(CubePos pos, int axis, bool dir) {
         var posMax = pos + FaceSize(axis);
-        if (state.AnySelection
-                && (nGUI.AddSelectEnabled ^ Input.IsKeyPressed((int)KeyList.Shift))) {
+        if (nGUI.AddSelectEnabled && state.AnySelection) {
             selStartMin = CubePos.Min(state.selMin, pos);
             selStartMax = CubePos.Max(state.selMax, posMax);
         } else {

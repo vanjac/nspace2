@@ -25,8 +25,8 @@ public class EditorGUI : Node {
     [NodeRef("OpenDialog")] public FileDialog nOpenDialog = null;
     [NodeRef("DeleteDialog")] public FileDialog nDeleteDialog = null;
 
-    public bool AddSelectEnabled => nAddSelect.Pressed;
-    public bool MoveEnabled => nMove.Pressed;
+    public bool AddSelectEnabled => nAddSelect.Pressed  ^ Input.IsKeyPressed((int)KeyList.Shift);
+    public bool MoveEnabled => nMove.Pressed ^ Input.IsKeyPressed((int)KeyList.Shift);
     public string StatsText { set => nStats.Text = value; }
     public string PerfText { set => nPerf.Text = value; }
 
