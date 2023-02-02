@@ -359,8 +359,6 @@ public static class CubeEdit {
         // max edges
         for (int i = 0; i < 2; i++) {
             int sideAxis = (extAxis + i + 1) % 3;
-            if (rectMin[sideAxis] == rectMax[sideAxis])
-                continue; // flat along this axis
             CubePos sideAxisOff = CubePos.FromAxisSize(sideAxis, extDepth);
             MaxSideBoxApply(srcRoot, rectMin, rectMax, (1 << extAxis) | (1 << sideAxis),
                 (ref Cube maxCubeRef, CubePos maxPos, int depth) => {
@@ -373,9 +371,11 @@ public static class CubeEdit {
                     Cube fromCube = extDir ? GetCube(srcRoot, minPos, depth) : maxCubeRef;
                     Cube fromAdj = extDir ? minAdj : maxAdj;
                     dstRoot = CubeApply(dstRoot, toPos, depth, c => {
-                        // extrude front
-                        c = TransferExtendedEdge(minAdj, maxAdj, c, srcChildI: 1 << sideAxis,
-                            srcFaceAxis: extAxis, dstFaceAxis: sideAxis, extAxis);
+                        if (rectMin[sideAxis] != rectMax[sideAxis]) { // not flat along this axis
+                            // extrude front
+                            c = TransferExtendedEdge(minAdj, maxAdj, c, srcChildI: 1 << sideAxis,
+                                srcFaceAxis: extAxis, dstFaceAxis: sideAxis, extAxis);
+                        }
                         // extrude side
                         return TransferExtendedEdge(fromAdj, fromCube, c, srcChildI: sideChildI,
                             srcFaceAxis: sideAxis, dstFaceAxis: sideAxis, extAxis);
