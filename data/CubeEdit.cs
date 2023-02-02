@@ -294,29 +294,29 @@ public static class CubeEdit {
     }
 
     /// <summary>
-    /// Extrude the sides of all cubes in a rectangle into the adjacent cubes, including any
-    /// faces/volumes along those sides.
+    /// Move cubes in a box in the given direction, leaving behind extruded sides in the opposite
+    /// direction, including any faces/volumes along those sides.
     /// </summary>
-    /// <param name="srcRoot">The root cube in which the rectangle to be extruded exists.</param>
+    /// <param name="srcRoot">The root cube in which the box to be extruded exists.</param>
     /// <param name="dstRoot">
     /// The root cube which will be modified to add the extruded cubes and faces.
     /// </param>
-    /// <param name="rectMin">Minimum coordinates of the rectangle to be extruded.</param>
-    /// <param name="rectMax">Maximum coordinates of the rectangle to be extruded.</param>
+    /// <param name="rectMin">Minimum coordinates of the box to be extruded.</param>
+    /// <param name="rectMax">Maximum coordinates of the box to be extruded.</param>
     /// <param name="extDepth">Depth of the distance to extrude in the tree.</param>
-    /// <param name="extAxis">Axis of the sides to be extruded (on the negative side)</param>
+    /// <param name="extAxis">Axis of the direction to extrude</param>
     /// <param name="extDir">
-    /// If true, rect will be extruded in the positive direction along the axis; if false, negative.
+    /// If true, box will be extruded in the positive direction along the axis; if false, negative.
     /// </param>
-    /// <returns>dstRoot with the rectangle from srcRoot extruded.</returns>
-    public static Cube ExtrudeRect(Cube srcRoot, Cube dstRoot, CubePos rectMin, CubePos rectMax,
+    /// <returns>dstRoot with the box from srcRoot extruded.</returns>
+    public static Cube Extrude(Cube srcRoot, Cube dstRoot, CubePos rectMin, CubePos rectMax,
             int extDepth, int extAxis, bool extDir) {
-        // TODO call TransferBox
+        CubePos extMax = rectMax;
         if (extDir)
-            rectMax[extAxis] = rectMin[extAxis];
+            extMax[extAxis] = rectMin[extAxis];
         CubePos extAxisOff = CubePos.FromAxisSize(extAxis, extDepth);
         int sideChildI = extDir ? (1 << extAxis) : 0;
-        MaxSideBoxApply(srcRoot, rectMin, rectMax, 1 << extAxis,
+        MaxSideBoxApply(srcRoot, rectMin, extMax, 1 << extAxis,
             (ref Cube maxCubeRef, CubePos maxPos, int depth) => {
                 if (depth != extDepth)
                     return depth > extDepth; // TODO!
@@ -326,15 +326,11 @@ public static class CubeEdit {
                 Cube fromCube = extDir ? minCube : maxCube, toCube = extDir ? maxCube : minCube;
 
                 Cube extruded = MakeExtruded(fromCube, extAxis, extDir);
-                // transfer front face (TODO: some of this could be handled by TransferBox instead)
-                if (extDir) {
-                    dstRoot = CubeApply(dstRoot, toPos + extAxisOff, depth,
-                        c => TransferFaces(minCube, maxCube, c, extAxis)); // TODO don't do this!
-                } else {
-                    // extruded cube completely replaces toCube, so transfer faces from that as well
+                if (!extDir) {
+                    // extruded cube completely replaces toCube, so transfer faces from that
                     extruded = TransferFaces(GetCube(srcRoot, toPos - extAxisOff, depth), toCube,
                         extruded, extAxis);
-                    extruded = TransferFaces(minCube, maxCube, extruded, extAxis);
+                    // not necessary if extDir == true, since min faces are copied by MakeExtruded
                 }
                 // update min sides
                 for (int i = 0; i < 2; i++) {
@@ -353,6 +349,8 @@ public static class CubeEdit {
                         fromCube, extruded, srcChildI: sideChildI,
                         srcFaceAxis: sideAxis, dstFaceAxis: sideAxis, extAxis);
                 }
+                // the front face will be transferred by TransferBox() below.
+                // the back face does not need to be transferred, there will be no boundary there.
                 dstRoot = PutCube(dstRoot, toPos, depth, extruded);
                 return true;
             });
@@ -360,7 +358,7 @@ public static class CubeEdit {
         for (int i = 0; i < 2; i++) {
             int sideAxis = (extAxis + i + 1) % 3;
             CubePos sideAxisOff = CubePos.FromAxisSize(sideAxis, extDepth);
-            MaxSideBoxApply(srcRoot, rectMin, rectMax, (1 << extAxis) | (1 << sideAxis),
+            MaxSideBoxApply(srcRoot, rectMin, extMax, (1 << extAxis) | (1 << sideAxis),
                 (ref Cube maxCubeRef, CubePos maxPos, int depth) => {
                     if (depth != extDepth)
                         return depth > extDepth; // TODO!
@@ -371,7 +369,7 @@ public static class CubeEdit {
                     Cube fromCube = extDir ? GetCube(srcRoot, minPos, depth) : maxCubeRef;
                     Cube fromAdj = extDir ? minAdj : maxAdj;
                     dstRoot = CubeApply(dstRoot, toPos, depth, c => {
-                        if (rectMin[sideAxis] != rectMax[sideAxis]) { // not flat along this axis
+                        if (rectMin[sideAxis] != extMax[sideAxis]) { // not flat along this axis
                             // extrude front
                             c = TransferExtendedEdge(minAdj, maxAdj, c, srcChildI: 1 << sideAxis,
                                 srcFaceAxis: extAxis, dstFaceAxis: sideAxis, extAxis);
@@ -383,7 +381,9 @@ public static class CubeEdit {
                     return true;
                 });
         }
-        return dstRoot;
+
+        return TransferBox(srcRoot, rectMin, rectMax,
+            dstRoot, rectMin + CubePos.FromAxisSize(extAxis, extDepth, extDir ? 1 : -1), 0);
     }
 
     /// <summary>

@@ -234,10 +234,7 @@ public class Editor : Spatial {
         CubeModel m = state.world.Val;
         Cube oldRoot = m.root;
         bool rootModified = false;
-        m.root = Util.AssignChanged(m.root, CubeEdit.TransferBox(
-            oldRoot, state.selMin.ToRoot(m), state.selMax.ToRoot(m),
-            m.root, (state.selMin + axisOff).ToRoot(m), 0), ref rootModified);
-        m.root = Util.AssignChanged(m.root, CubeEdit.ExtrudeRect(
+        m.root = Util.AssignChanged(m.root, CubeEdit.Extrude(
             oldRoot, m.root, state.selMin.ToRoot(m), state.selMax.ToRoot(m),
             state.RootEditDepth, axis, dir), ref rootModified);
         if (rootModified)
