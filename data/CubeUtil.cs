@@ -150,11 +150,10 @@ public struct CubePos {
     /// </summary>
     /// <param name="axis">Axis index to be set.</param>
     /// <param name="depth">Depth of cube to use with CubeSize().</param>
-    /// <param name="factor">Multiply axis value.</param>
     /// <returns>A CubePos with a single axis set.</returns>
-    public static CubePos FromAxisSize(int axis, int depth, int factor = 1) {
+    public static CubePos FromAxisSize(int axis, int depth) {
         CubePos pos = ZERO;
-        pos[axis] = (uint)(CubeSize(depth) * factor);
+        pos[axis] = CubeSize(depth);
         return pos;
     }
 
@@ -247,6 +246,11 @@ public struct CubePos {
         => new CubePos(a.x + b.x, a.y + b.y, a.z + b.z);
     public static CubePos operator -(CubePos a, CubePos b)
         => new CubePos(a.x - b.x, a.y - b.y, a.z - b.z);
+    public static CubePos operator -(CubePos a)
+        => new CubePos((uint)-a.x, (uint)-a.y, (uint)-a.z);
+    public static CubePos operator *(CubePos a, int b)
+        => new CubePos((uint)(a.x * b), (uint)(a.y * b), (uint)(a.z * b));
+    public static CubePos operator *(int a, CubePos b) => b * a;
     public static CubePos operator |(CubePos a, CubePos b)
         => new CubePos(a.x | b.x, a.y | b.y, a.z | b.z);
     public static CubePos operator &(CubePos a, CubePos b)

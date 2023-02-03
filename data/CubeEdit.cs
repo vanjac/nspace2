@@ -383,7 +383,7 @@ public static class CubeEdit {
         }
 
         return TransferBox(srcRoot, rectMin, rectMax,
-            dstRoot, rectMin + CubePos.FromAxisSize(extAxis, extDepth, extDir ? 1 : -1), 0);
+            dstRoot, rectMin + extAxisOff * (extDir ? 1 : -1), 0);
     }
 
     /// <summary>

@@ -213,7 +213,7 @@ public class Editor : Spatial {
     }
 
     private void MoveSelection(int axis, int count) {
-        CubePos move = CubePos.FromAxisSize(axis, state.editDepth, count);
+        CubePos move = CubePos.FromAxisSize(axis, state.editDepth) * count;
         state.selMin += move;
         state.selMax += move;
     }
@@ -228,7 +228,7 @@ public class Editor : Spatial {
     private bool Move(int axis, bool dir) {
         if (!state.AnySelection)
             return false;
-        CubePos axisOff = CubePos.FromAxisSize(axis, state.editDepth, dir ? 1 : -1);
+        CubePos axisOff = CubePos.FromAxisSize(axis, state.editDepth) * (dir ? 1 : -1);
         bool worldModified = ExpandIncludeSelection(axisOff);
 
         CubeModel m = state.world.Val;
