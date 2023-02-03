@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=2]
+[gd_scene load_steps=16 format=2]
 
 [ext_resource path="res://edit/EditorGUI.cs" type="Script" id=1]
 
@@ -37,6 +37,22 @@ scancode = 83
 
 [sub_resource type="ShortCut" id=23]
 shortcut = SubResource( 22 )
+
+[sub_resource type="InputEventKey" id=26]
+control = true
+command = true
+scancode = 67
+
+[sub_resource type="ShortCut" id=27]
+shortcut = SubResource( 26 )
+
+[sub_resource type="InputEventKey" id=24]
+control = true
+command = true
+scancode = 86
+
+[sub_resource type="ShortCut" id=25]
+shortcut = SubResource( 24 )
 
 [node name="EditorGUI" type="CanvasLayer"]
 script = ExtResource( 1 )
@@ -211,12 +227,14 @@ text = "Move"
 margin_top = 68.0
 margin_right = 152.0
 margin_bottom = 88.0
+shortcut = SubResource( 27 )
 text = "Copy"
 
 [node name="Paste" type="Button" parent="TabContainer/Edit"]
 margin_top = 92.0
 margin_right = 152.0
 margin_bottom = 112.0
+shortcut = SubResource( 25 )
 text = "Paste"
 
 [node name="SaveDialog" type="FileDialog" parent="."]
