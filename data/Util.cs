@@ -23,7 +23,7 @@ public static class Util {
 /// <typeparam name="T">Type of value to be made immutable.</typeparam>
 public class Immut<T> {
     [System.Diagnostics.DebuggerBrowsable(System.Diagnostics.DebuggerBrowsableState.RootHidden)]
-    public readonly T Val;
+    public readonly T Val; // TODO: struct values will be boxed (again), does this hurt performance?
 
     public Immut(T val) {
         Val = val;
