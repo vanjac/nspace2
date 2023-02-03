@@ -493,8 +493,10 @@ public class Editor : Spatial {
     }
 
     public void _OnPastePressed() {
-        var op = BeginOperation("Paste");
-        EndOperation(op, Paste(clipboard));
+        if (clipboard.root != null) {
+            var op = BeginOperation("Paste");
+            EndOperation(op, Paste(clipboard));
+        }
     }
 
     public void _OnVolumeButtonPressed(string guid) {
