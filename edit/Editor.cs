@@ -484,7 +484,6 @@ public class Editor : Spatial {
 
     public void _OnGridDoublePressed() {
         state.editDepth -= 1;
-        state.ClearSelection();
         UpdateState(false);
     }
 
