@@ -1,8 +1,7 @@
 using Godot;
-using System;
 
 public class AdjustHandle : Spatial {
-    private const float SCALE = 0.25f;
+    [Export] public float ScaleMult = 0.25f;
 
     [Export] public Material material;
 
@@ -35,7 +34,7 @@ public class AdjustHandle : Spatial {
 
     public void Update() {
         Vector3 globalOrigin = GlobalTranslation + dist * GlobalTransform.basis.z.Normalized();
-        Scale = GDUtil.DistanceToCamera(nCamera, globalOrigin) * Vector3.One * SCALE;
+        Scale = GDUtil.DistanceToCamera(nCamera, globalOrigin) * Vector3.One * ScaleMult;
 
         float scaledDist = 1 + dist / GlobalTransform.basis.z.Length();
         nLine.Scale = new Vector3(1, 1, scaledDist);

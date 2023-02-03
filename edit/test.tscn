@@ -57,13 +57,16 @@ material = SubResource( 30 )
 
 [node name="X" parent="Editor/MoveAdjust" instance=ExtResource( 66 )]
 transform = Transform( -4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 0, 0 )
+ScaleMult = 0.2
 material = SubResource( 22 )
 
 [node name="Y" parent="Editor/MoveAdjust" instance=ExtResource( 66 )]
 transform = Transform( 1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0 )
+ScaleMult = 0.2
 material = SubResource( 23 )
 
 [node name="Z" parent="Editor/MoveAdjust" instance=ExtResource( 66 )]
+ScaleMult = 0.2
 material = SubResource( 24 )
 
 [node name="RectSelection" type="Spatial" parent="Editor"]
