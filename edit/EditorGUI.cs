@@ -28,6 +28,7 @@ public class EditorGUI : Node {
     [NodeRef("DeleteDialog")] public FileDialog nDeleteDialog = null;
     [NodeRef("ClipNameDialog")] public AcceptDialog nClipNameDialog = null;
     [NodeRef("ClipNameDialog/LineEdit")] public LineEdit nClipName = null;
+    private PackedScene sMatButton, sClipGroup;
 
     public bool AddSelectEnabled => nAddSelect.Pressed  ^ Input.IsKeyPressed((int)KeyList.Shift);
     public bool MoveEnabled => nMove.Pressed ^ Input.IsKeyPressed((int)KeyList.Shift);
@@ -39,6 +40,8 @@ public class EditorGUI : Node {
         NodeRefAttribute.GetAllNodes(this);
         nFilePopup = nFile.GetPopup();
         nViewPopup = nView.GetPopup();
+        sMatButton = GD.Load<PackedScene>("res://edit/MaterialButton.tscn");
+        sClipGroup = GD.Load<PackedScene>("res://edit/ClipGroup.tscn");
     }
 
     public void UpdateState(EditState state, Undoer<EditState> undo) {
@@ -53,6 +56,27 @@ public class EditorGUI : Node {
             return $"1 / {(int)(1 / size)}";
         else
             return size.ToString();
+    }
+
+    public Button AddMaterialButton(Texture texture) {
+        var instance = sMatButton.Instance<Button>();
+        instance.Icon = texture;
+        nMaterialsGrid.AddChild(instance);
+        return instance;
+    }
+
+    public (Button pasteButton, Button deleteButton) AddClipGroup(string id, string name) {
+        var clipScene = sClipGroup.Instance();
+        clipScene.Name = id;
+        var pasteButton = clipScene.GetNode<Button>("Paste");
+        pasteButton.Text = name;
+        var deleteButton = clipScene.GetNode<Button>("Delete");
+        nClipsList.AddChild(clipScene);
+        return (pasteButton, deleteButton);
+    }
+
+    public void RemoveClipGroup(string id) {
+        nClipsList.GetNode(id).QueueFree();
     }
 
     public void ShowOpenDialog() {
