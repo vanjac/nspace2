@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://edit/ResizeHandle.cs" type="Script" id=1]
 [ext_resource path="res://edit/wire_grid.tres" type="ArrayMesh" id=2]
@@ -6,6 +6,9 @@
 [sub_resource type="SphereShape" id=5]
 
 [sub_resource type="SphereMesh" id=3]
+
+[sub_resource type="SpatialMaterial" id=6]
+flags_unshaded = true
 
 [node name="ResizeHandle" type="Spatial"]
 script = ExtResource( 1 )
@@ -24,3 +27,4 @@ mesh = SubResource( 3 )
 [node name="Grid" type="MeshInstance" parent="."]
 visible = false
 mesh = ExtResource( 2 )
+material/0 = SubResource( 6 )
