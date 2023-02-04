@@ -60,6 +60,7 @@ public class Editor : Spatial {
 
         nGUI.nGridHalf.Connect("pressed", this, nameof(_OnGridHalfPressed));
         nGUI.nGridDouble.Connect("pressed", this, nameof(_OnGridDoublePressed));
+        nGUI.nAddSelect.Connect("pressed", this, nameof(_OnAddSelectPressed));
         nGUI.nUndo.Connect("pressed", this, nameof(_OnUndoPressed));
         nGUI.nRedo.Connect("pressed", this, nameof(_OnRedoPressed));
         nGUI.nSave.Connect("pressed", this, nameof(_OnSavePressed));
@@ -156,10 +157,11 @@ public class Editor : Spatial {
             size.z = 1;
             nRectSelection.Scale = size;
         }
+        bool handlesEnabled = state.AnySelection && !nGUI.AddSelectEnabled;
         for (int i = 0; i < 8; i++) {
             var handle = nResizeHandleRoot.GetChild<ResizeHandle>(i);
-            handle.Enabled = state.AnySelection;
-            if (state.AnySelection) {
+            handle.Enabled = handlesEnabled;
+            if (handlesEnabled) {
                 CubePos handlePos = state.selMin;
                 for (int axis = 0; axis < 3; axis++)
                     if ((i & (1 << axis)) != 0)
@@ -172,18 +174,19 @@ public class Editor : Spatial {
     }
 
     private void UpdateAdjustPos() {
+        bool adjustEnabled = state.AnySelection && !nGUI.AddSelectEnabled;
         foreach (var adjust in nMoveAdjustAxes)
-            adjust.Enabled = state.AnySelection;
+            adjust.Enabled = adjustEnabled;
 
         var selSize = state.selMax - state.selMin;
-        if (selSize.Dimension() == 2 && selSize[state.selAxis] == 0) {
+        if (adjustEnabled && selSize.Dimension() == 2 && selSize[state.selAxis] == 0) {
             nExtrudeAdjust.Enabled = true;
             nExtrudeAdjust.Rotation = GDUtil.AxisRotation(state.selAxis, state.selDir);
             nMoveAdjustAxes[state.selAxis].Enabled = false;
         } else {
             nExtrudeAdjust.Enabled = false;
         }
-        if (!state.AnySelection)
+        if (!adjustEnabled)
             return;
 
         Vector3 center = (state.selMin.ToModelPos() + state.selMax.ToModelPos()) / 2;
@@ -205,7 +208,8 @@ public class Editor : Spatial {
 
     private void SelectStart(CubePos pos, int axis, bool dir) {
         var posMax = pos + FaceSize(axis);
-        if (nGUI.AddSelectEnabled && state.AnySelection) {
+        if ((nGUI.AddSelectEnabled ^ Input.IsKeyPressed((int)KeyList.Shift))
+                && state.AnySelection) {
             nGUI.AddSelectEnabled = false;
             selStartMin = CubePos.Min(state.selMin, pos);
             selStartMax = CubePos.Max(state.selMax, posMax);
@@ -397,7 +401,7 @@ public class Editor : Spatial {
     }
 
     private void MoveAdjust(int axis, int units) {
-        if (nGUI.MoveSelectEnabled) {
+        if (nGUI.MoveSelectEnabled ^ Input.IsKeyPressed((int)KeyList.Shift)) {
             MoveSelection(axis, units);
             UpdateState(false);
             return;
@@ -523,6 +527,10 @@ public class Editor : Spatial {
     public void _OnGridDoublePressed() {
         state.editDepth -= 1;
         UpdateState(false);
+    }
+
+    public void _OnAddSelectPressed() {
+        UpdateState(false); // show/hide handles
     }
 
     public void _OnCopyPressed() {

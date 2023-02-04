@@ -33,10 +33,10 @@ public class EditorGUI : Node {
     private PackedScene sMatButton, sClipGroup;
 
     public bool AddSelectEnabled {
-        get => nAddSelect.Pressed  ^ Input.IsKeyPressed((int)KeyList.Shift);
+        get => nAddSelect.Pressed;
         set => nAddSelect.Pressed = false;
     }
-    public bool MoveSelectEnabled => nMoveSelect.Pressed ^ Input.IsKeyPressed((int)KeyList.Shift);
+    public bool MoveSelectEnabled => nMoveSelect.Pressed;
     public string ClipName => nClipName.Text;
     public bool StatusVisible { set => nStatus.Visible = value; }
     public string StatsText { set => nStats.Text = value; }
