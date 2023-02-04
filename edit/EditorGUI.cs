@@ -12,6 +12,7 @@ public class EditorGUI : Node {
     public PopupMenu nFilePopup;
     [NodeRef("Toolbar/View")] public MenuButton nView = null;
     public PopupMenu nViewPopup;
+    [NodeRef("Status")] public Container nStatus = null;
     [NodeRef("Status/Stats")] public Label nStats = null;
     [NodeRef("Status/Operation")] public Label nOperation = null;
     [NodeRef("Status/Perf")] public Label nPerf = null;
@@ -37,6 +38,7 @@ public class EditorGUI : Node {
     }
     public bool MoveEnabled => nMove.Pressed ^ Input.IsKeyPressed((int)KeyList.Shift);
     public string ClipName => nClipName.Text;
+    public bool StatusVisible { set => nStatus.Visible = value; }
     public string StatsText { set => nStats.Text = value; }
     public string PerfText { set => nPerf.Text = value; }
     public string OperationText { set => nOperation.Text = value; }

@@ -647,7 +647,10 @@ public class Editor : Spatial {
                 nCubeMesh.DebugLeavesVisible = check;
                 UpdateState(true);
                 break;
-            case 5: // wireframe (TODO broken)
+            case 5: // stats
+                nGUI.StatusVisible = check;
+                break;
+            case 99: // wireframe (TODO broken)
                 GetViewport().DebugDraw = check ? Viewport.DebugDrawEnum.Wireframe
                     : Viewport.DebugDrawEnum.Disabled;
                 break;
