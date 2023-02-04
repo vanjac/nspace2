@@ -150,7 +150,7 @@ public class Editor : Spatial {
             var axis = selSize[0] == 0 ? 0 : selSize[1] == 0 ? 1 : 2; // bleh
             nRectSelection.Visible = true;
             nRectSelection.Translation = state.selMin.ToModelPos();
-            nRectSelection.Rotation = AxisRotation(axis);
+            nRectSelection.Rotation = GDUtil.AxisRotation(axis);
             int s = axis + 1, t = axis + 2;
             Vector3 size = selSize.ToModelSize();
             size = CubeUtil.CycleVector(size, 5 - axis);
@@ -178,7 +178,7 @@ public class Editor : Spatial {
 
         if ((state.selMax - state.selMin).Dimension() == 2) {
             nExtrudeAdjust.Enabled = true;
-            nExtrudeAdjust.Rotation = AxisRotation(state.selAxis, state.selDir);
+            nExtrudeAdjust.Rotation = GDUtil.AxisRotation(state.selAxis, state.selDir);
             nMoveAdjustAxes[state.selAxis].Enabled = false;
         } else {
             nExtrudeAdjust.Enabled = false;
@@ -196,19 +196,6 @@ public class Editor : Spatial {
             adjust.snap = snap;
         foreach (ResizeHandle handle in nResizeHandleRoot.GetChildren())
             handle.snap = snap;
-    }
-
-    private Vector3 AxisRotation(int axis, bool dir = true) {
-        float hpi = Mathf.Pi / 2;
-        float hpi3 = Mathf.Pi * 3 / 2;
-        switch ((axis, dir)) {
-            case (0, false): return new Vector3(0, hpi3, hpi3);
-            case (1, false): return new Vector3(-hpi3, -hpi3, 0);
-            case (2, false): return new Vector3(0, Mathf.Pi, 0);
-            case (0, true): return new Vector3(0, hpi, hpi);
-            case (1, true): return new Vector3(-hpi, -hpi, 0);
-            default: return new Vector3(0, 0, 0);
-        }
     }
 
     private CubePos FaceSize(int axis) {

@@ -31,4 +31,17 @@ public static class GDUtil {
         var nearPlane = (Plane)camera.GetFrustum()[0]; // TODO avoid allocation
         return (nearPlane.IntersectRay(camPos, dir) ?? camPos, dir);
     }
+
+    public static Vector3 AxisRotation(int axis, bool dir = true) {
+        float hpi = Mathf.Pi / 2;
+        float hpi3 = Mathf.Pi * 3 / 2;
+        switch ((axis, dir)) {
+            case (0, false): return new Vector3(0, hpi3, hpi3);
+            case (1, false): return new Vector3(-hpi3, -hpi3, 0);
+            case (2, false): return new Vector3(0, Mathf.Pi, 0);
+            case (0, true): return new Vector3(0, hpi, hpi);
+            case (1, true): return new Vector3(-hpi, -hpi, 0);
+            default: return new Vector3(0, 0, 0);
+        }
+    }
 }
