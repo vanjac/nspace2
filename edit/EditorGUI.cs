@@ -2,6 +2,7 @@ using Godot;
 
 public class EditorGUI : Node {
     [NodeRef("Toolbar/AddSelect")] public Button nAddSelect = null;
+    [NodeRef("Toolbar/MoveSelect")] public Button nMoveSelect = null;
     [NodeRef("Toolbar/Grid/HBox/Size")] public Label nGridSize = null;
     [NodeRef("Toolbar/Grid/HBox/Half")] public Button nGridHalf = null;
     [NodeRef("Toolbar/Grid/HBox/Double")] public Button nGridDouble = null;
@@ -19,7 +20,6 @@ public class EditorGUI : Node {
     [NodeRef("TabContainer/Edit/Volumes/Empty")] public Button nEmptyVolume = null;
     [NodeRef("TabContainer/Edit/Volumes/Solid")] public Button nSolidVolume = null;
     [NodeRef("TabContainer/Edit/Volumes/Fluid")] public Button nFluidVolume = null;
-    [NodeRef("TabContainer/Edit/Move")] public Button nMove = null;
     [NodeRef("TabContainer/Edit/Copy")] public Button nCopy = null;
     [NodeRef("TabContainer/Edit/Paste")] public Button nPaste = null;
     [NodeRef("TabContainer/Edit/SaveClip")] public Button nSaveClip = null;
@@ -36,7 +36,7 @@ public class EditorGUI : Node {
         get => nAddSelect.Pressed  ^ Input.IsKeyPressed((int)KeyList.Shift);
         set => nAddSelect.Pressed = false;
     }
-    public bool MoveEnabled => nMove.Pressed ^ Input.IsKeyPressed((int)KeyList.Shift);
+    public bool MoveSelectEnabled => nMoveSelect.Pressed ^ Input.IsKeyPressed((int)KeyList.Shift);
     public string ClipName => nClipName.Text;
     public bool StatusVisible { set => nStatus.Visible = value; }
     public string StatsText { set => nStats.Text = value; }

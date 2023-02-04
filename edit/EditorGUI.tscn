@@ -101,30 +101,37 @@ margin_bottom = 40.0
 toggle_mode = true
 text = "  +  "
 
-[node name="Undo" type="Button" parent="Toolbar"]
+[node name="MoveSelect" type="Button" parent="Toolbar"]
 margin_left = 169.0
-margin_right = 215.0
+margin_right = 209.0
+margin_bottom = 40.0
+toggle_mode = true
+text = "  M  "
+
+[node name="Undo" type="Button" parent="Toolbar"]
+margin_left = 213.0
+margin_right = 259.0
 margin_bottom = 40.0
 shortcut = SubResource( 19 )
 text = "Undo"
 
 [node name="Redo" type="Button" parent="Toolbar"]
-margin_left = 219.0
-margin_right = 263.0
+margin_left = 263.0
+margin_right = 307.0
 margin_bottom = 40.0
 shortcut = SubResource( 21 )
 text = "Redo"
 
 [node name="Save" type="Button" parent="Toolbar"]
-margin_left = 267.0
-margin_right = 308.0
+margin_left = 311.0
+margin_right = 352.0
 margin_bottom = 40.0
 shortcut = SubResource( 23 )
 text = "Save"
 
 [node name="File" type="MenuButton" parent="Toolbar"]
-margin_left = 312.0
-margin_right = 347.0
+margin_left = 356.0
+margin_right = 391.0
 margin_bottom = 40.0
 focus_mode = 2
 text = "File"
@@ -132,8 +139,8 @@ flat = false
 items = [ "New Indoor", null, 0, false, false, 0, 0, null, "", false, "New Outdoor", null, 0, false, false, 1, 0, null, "", false, "Open...", null, 0, false, false, 2, 0, null, "", false, "Save as...", null, 0, false, false, 3, 0, null, "", false, "Delete...", null, 0, false, false, 4, 0, null, "", false, "Simplify", null, 0, false, false, 5, 0, null, "", false ]
 
 [node name="View" type="MenuButton" parent="Toolbar"]
-margin_left = 351.0
-margin_right = 393.0
+margin_left = 395.0
+margin_right = 437.0
 margin_bottom = 40.0
 focus_mode = 2
 text = "View"
@@ -192,14 +199,6 @@ margin_right = 152.0
 margin_bottom = 40.0
 size_flags_horizontal = 3
 text = "Fluid"
-
-[node name="Move" type="Button" parent="TabContainer/Edit"]
-margin_top = 44.0
-margin_right = 152.0
-margin_bottom = 64.0
-toggle_mode = true
-pressed = true
-text = "Move"
 
 [node name="Copy" type="Button" parent="TabContainer/Edit"]
 margin_top = 68.0

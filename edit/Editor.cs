@@ -397,7 +397,7 @@ public class Editor : Spatial {
     }
 
     private void MoveAdjust(int axis, int units) {
-        if (!nGUI.MoveEnabled) {
+        if (nGUI.MoveSelectEnabled) {
             MoveSelection(axis, units);
             UpdateState(false);
             return;
