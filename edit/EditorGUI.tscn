@@ -140,28 +140,6 @@ text = "View"
 flat = false
 items = [ "Faces", null, 1, true, false, 0, 0, null, "", false, "Edge shadows", null, 1, true, false, 1, 0, null, "", false, "Grid", null, 1, false, false, 2, 0, null, "", false, "Edges", null, 1, false, false, 3, 0, null, "", false, "Leaves", null, 1, false, false, 4, 0, null, "", false ]
 
-[node name="Stats" type="PanelContainer" parent="Toolbar"]
-margin_left = 397.0
-margin_right = 411.0
-margin_bottom = 40.0
-
-[node name="Label" type="Label" parent="Toolbar/Stats"]
-margin_left = 7.0
-margin_top = 13.0
-margin_right = 7.0
-margin_bottom = 27.0
-
-[node name="Perf" type="PanelContainer" parent="Toolbar"]
-margin_left = 415.0
-margin_right = 429.0
-margin_bottom = 40.0
-
-[node name="Label" type="Label" parent="Toolbar/Perf"]
-margin_left = 7.0
-margin_top = 13.0
-margin_right = 7.0
-margin_bottom = 27.0
-
 [node name="TabContainer" type="TabContainer" parent="."]
 modulate = Color( 1, 1, 1, 0.784314 )
 anchor_bottom = 1.0
@@ -294,3 +272,30 @@ margin_left = 8.0
 margin_top = 8.0
 margin_right = 214.0
 margin_bottom = 32.0
+
+[node name="Status" type="HBoxContainer" parent="."]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 170.0
+margin_top = -40.0
+
+[node name="Stats" type="Label" parent="Status"]
+margin_top = 26.0
+margin_bottom = 40.0
+size_flags_vertical = 8
+
+[node name="Sep1" type="Label" parent="Status"]
+margin_left = 4.0
+margin_top = 26.0
+margin_right = 9.0
+margin_bottom = 40.0
+size_flags_vertical = 8
+text = "/"
+
+[node name="Perf" type="Label" parent="Status"]
+margin_left = 13.0
+margin_top = 26.0
+margin_right = 13.0
+margin_bottom = 40.0
+size_flags_vertical = 8

@@ -12,8 +12,8 @@ public class EditorGUI : Node {
     public PopupMenu nFilePopup;
     [NodeRef("Toolbar/View")] public MenuButton nView = null;
     public PopupMenu nViewPopup;
-    [NodeRef("Toolbar/Stats/Label")] public Label nStats = null;
-    [NodeRef("Toolbar/Perf/Label")] public Label nPerf = null;
+    [NodeRef("Status/Stats")] public Label nStats = null;
+    [NodeRef("Status/Perf")] public Label nPerf = null;
     [NodeRef("TabContainer/Edit/Volumes/Empty")] public Button nEmptyVolume = null;
     [NodeRef("TabContainer/Edit/Volumes/Solid")] public Button nSolidVolume = null;
     [NodeRef("TabContainer/Edit/Volumes/Fluid")] public Button nFluidVolume = null;
