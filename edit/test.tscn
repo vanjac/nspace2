@@ -100,10 +100,14 @@ material = SubResource( 30 )
 [node name="RectSelection" type="Spatial" parent="Editor"]
 visible = false
 
-[node name="MeshInstance" type="MeshInstance" parent="Editor/RectSelection"]
+[node name="Front" type="MeshInstance" parent="Editor/RectSelection"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0.5, 0 )
 mesh = SubResource( 3 )
-skeleton = NodePath("../..")
+material/0 = ExtResource( 13 )
+
+[node name="Back" type="MeshInstance" parent="Editor/RectSelection"]
+transform = Transform( -1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0.5, 0.5, 0 )
+mesh = SubResource( 3 )
 material/0 = ExtResource( 13 )
 
 [node name="BoxSelection" type="Spatial" parent="Editor"]

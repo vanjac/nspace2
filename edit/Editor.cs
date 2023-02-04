@@ -154,7 +154,7 @@ public class Editor : Spatial {
             int s = axis + 1, t = axis + 2;
             Vector3 size = selSize.ToModelSize();
             size = CubeUtil.CycleVector(size, 5 - axis);
-            size.z = state.selDir ? 1 : -1;
+            size.z = 1;
             nRectSelection.Scale = size;
         }
         for (int i = 0; i < 8; i++) {
