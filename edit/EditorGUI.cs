@@ -30,7 +30,10 @@ public class EditorGUI : Node {
     [NodeRef("ClipNameDialog/LineEdit")] public LineEdit nClipName = null;
     private PackedScene sMatButton, sClipGroup;
 
-    public bool AddSelectEnabled => nAddSelect.Pressed  ^ Input.IsKeyPressed((int)KeyList.Shift);
+    public bool AddSelectEnabled {
+        get => nAddSelect.Pressed  ^ Input.IsKeyPressed((int)KeyList.Shift);
+        set => nAddSelect.Pressed = false;
+    }
     public bool MoveEnabled => nMove.Pressed ^ Input.IsKeyPressed((int)KeyList.Shift);
     public string ClipName => nClipName.Text;
     public string StatsText { set => nStats.Text = value; }

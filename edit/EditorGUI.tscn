@@ -62,15 +62,8 @@ anchor_right = 1.0
 margin_left = 170.0
 margin_bottom = 40.0
 
-[node name="AddSelect" type="Button" parent="Toolbar"]
-margin_right = 37.0
-margin_bottom = 40.0
-toggle_mode = true
-text = "Add"
-
 [node name="Grid" type="PanelContainer" parent="Toolbar"]
-margin_left = 41.0
-margin_right = 166.0
+margin_right = 125.0
 margin_bottom = 40.0
 
 [node name="HBox" type="HBoxContainer" parent="Toolbar/Grid"]
@@ -101,30 +94,37 @@ margin_bottom = 26.0
 shortcut = SubResource( 17 )
 text = "*2"
 
+[node name="AddSelect" type="Button" parent="Toolbar"]
+margin_left = 129.0
+margin_right = 165.0
+margin_bottom = 40.0
+toggle_mode = true
+text = "  +  "
+
 [node name="Undo" type="Button" parent="Toolbar"]
-margin_left = 170.0
-margin_right = 216.0
+margin_left = 169.0
+margin_right = 215.0
 margin_bottom = 40.0
 shortcut = SubResource( 19 )
 text = "Undo"
 
 [node name="Redo" type="Button" parent="Toolbar"]
-margin_left = 220.0
-margin_right = 264.0
+margin_left = 219.0
+margin_right = 263.0
 margin_bottom = 40.0
 shortcut = SubResource( 21 )
 text = "Redo"
 
 [node name="Save" type="Button" parent="Toolbar"]
-margin_left = 268.0
-margin_right = 309.0
+margin_left = 267.0
+margin_right = 308.0
 margin_bottom = 40.0
 shortcut = SubResource( 23 )
 text = "Save"
 
 [node name="File" type="MenuButton" parent="Toolbar"]
-margin_left = 313.0
-margin_right = 348.0
+margin_left = 312.0
+margin_right = 347.0
 margin_bottom = 40.0
 focus_mode = 2
 text = "File"
@@ -132,8 +132,8 @@ flat = false
 items = [ "New Indoor", null, 0, false, false, 0, 0, null, "", false, "New Outdoor", null, 0, false, false, 1, 0, null, "", false, "Open...", null, 0, false, false, 2, 0, null, "", false, "Save as...", null, 0, false, false, 3, 0, null, "", false, "Delete...", null, 0, false, false, 4, 0, null, "", false, "Simplify", null, 0, false, false, 5, 0, null, "", false ]
 
 [node name="View" type="MenuButton" parent="Toolbar"]
-margin_left = 352.0
-margin_right = 394.0
+margin_left = 351.0
+margin_right = 393.0
 margin_bottom = 40.0
 focus_mode = 2
 text = "View"
@@ -141,8 +141,8 @@ flat = false
 items = [ "Faces", null, 1, true, false, 0, 0, null, "", false, "Edge shadows", null, 1, true, false, 1, 0, null, "", false, "Grid", null, 1, false, false, 2, 0, null, "", false, "Edges", null, 1, false, false, 3, 0, null, "", false, "Leaves", null, 1, false, false, 4, 0, null, "", false ]
 
 [node name="Stats" type="PanelContainer" parent="Toolbar"]
-margin_left = 398.0
-margin_right = 412.0
+margin_left = 397.0
+margin_right = 411.0
 margin_bottom = 40.0
 
 [node name="Label" type="Label" parent="Toolbar/Stats"]
@@ -152,8 +152,8 @@ margin_right = 7.0
 margin_bottom = 27.0
 
 [node name="Perf" type="PanelContainer" parent="Toolbar"]
-margin_left = 416.0
-margin_right = 430.0
+margin_left = 415.0
+margin_right = 429.0
 margin_bottom = 40.0
 
 [node name="Label" type="Label" parent="Toolbar/Perf"]
