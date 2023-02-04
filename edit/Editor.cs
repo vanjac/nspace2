@@ -176,7 +176,8 @@ public class Editor : Spatial {
         foreach (var adjust in nMoveAdjustAxes)
             adjust.Enabled = state.AnySelection;
 
-        if ((state.selMax - state.selMin).Dimension() == 2) {
+        var selSize = state.selMax - state.selMin;
+        if (selSize.Dimension() == 2 && selSize[state.selAxis] == 0) {
             nExtrudeAdjust.Enabled = true;
             nExtrudeAdjust.Rotation = GDUtil.AxisRotation(state.selAxis, state.selDir);
             nMoveAdjustAxes[state.selAxis].Enabled = false;
