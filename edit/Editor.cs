@@ -21,6 +21,7 @@ public class Editor : Spatial {
     [NodeRef("ResizeHandles")] private Spatial nResizeHandleRoot = null;
     [NodeRef("EditorCamera")] private EditorCamera nCam = null;
     [NodeRef("/root/Spatial/EditorGUI")] private EditorGUI nGUI;
+    private PackedScene sClipButton;
 
     private struct Clipping {
         public Cube root;
@@ -39,6 +40,7 @@ public class Editor : Spatial {
 
     private CubePos selStartMin, selStartMax;
     private Clipping clipboard;
+    private Dictionary<Guid, Clipping> savedClips = new Dictionary<Guid, Clipping>();
 
     private string filePath;
 
@@ -52,6 +54,7 @@ public class Editor : Spatial {
             handle.Connect(nameof(ResizeHandle.AdjustEnd), this, nameof(_OnSelectionResizeEnd),
                 new GDArray { handleI++ });
         }
+        sClipButton = GD.Load<PackedScene>("res://edit/ClipButton.tscn");
         nGUI.Init();
 
         // https://www.reddit.com/r/godot/comments/d459x2/finally_figured_out_how_to_enable_wireframes_in/
@@ -73,12 +76,14 @@ public class Editor : Spatial {
             new GDArray { "39c2ca46-e6ce-4e0c-b851-295a7a5921b2" });
         nGUI.nCopy.Connect("pressed", this, nameof(_OnCopyPressed));
         nGUI.nPaste.Connect("pressed", this, nameof(_OnPastePressed));
+        nGUI.nSaveClip.Connect("pressed", this, nameof(_OnSaveClipPressed));
         nGUI.nSaveDialog.Connect("file_selected", this, nameof(_OnSaveFileSelected));
         nGUI.nOpenDialog.Connect("file_selected", this, nameof(_OnOpenFileSelected));
         nGUI.nDeleteDialog.Connect("file_selected", this, nameof(_OnDeleteFileSelected));
         nGUI.nDeleteDialog.Connect("dir_selected", this, nameof(_OnDeleteDirSelected));
+        nGUI.nClipNameDialog.Connect("confirmed", this, nameof(_OnClipNameConfirmed));
 
-        var matButtonScene = GD.Load<PackedScene>("res://edit/MaterialButton.tscn");
+        var sMatButton = GD.Load<PackedScene>("res://edit/MaterialButton.tscn");
 
         materialGuids = new Guid[nBuiltIn.baseMaterials.Length + 1];
         for (int i = 0; i < nBuiltIn.baseMaterials.Length; i++) {
@@ -98,7 +103,7 @@ public class Editor : Spatial {
             materialGuids[i] = guid;
             materialsDict[guid] = material;
 
-            var instance = matButtonScene.Instance<Button>();
+            var instance = sMatButton.Instance<Button>();
             instance.Icon = texture;
             instance.Connect("pressed", this, nameof(_OnBaseMatButtonPressed), new GDArray { i });
             nGUI.nMaterialsGrid.AddChild(instance);
@@ -282,11 +287,9 @@ public class Editor : Spatial {
         return modified;
     }
 
-    private void Copy() {
-        if (!state.AnySelection)
-            return;
+    private Clipping Copy() {
         var m = CubeEdit.ExpandModel(state.world, new CubePos[] { state.selMin, state.selMax }).Val;
-        clipboard = new Clipping {
+        return new Clipping {
             root = m.root,
             min = state.selMin.ToRoot(m),
             max = state.selMax.ToRoot(m),
@@ -523,7 +526,8 @@ public class Editor : Spatial {
     }
 
     public void _OnCopyPressed() {
-        Copy();
+        if (state.AnySelection)
+            clipboard = Copy();
     }
 
     public void _OnPastePressed() {
@@ -531,6 +535,36 @@ public class Editor : Spatial {
             var op = BeginOperation("Paste");
             EndOperation(op, Paste(clipboard));
         }
+    }
+
+    public void _OnSaveClipPressed() {
+        if (state.AnySelection)
+            nGUI.ShowClipNameDialog();
+    }
+
+    public void _OnClipNameConfirmed() {
+        Guid guid = new Guid();
+        savedClips[guid] = Copy();
+        var clipScene = sClipButton.Instance();
+        clipScene.Name = guid.ToString();
+        var pasteButton = clipScene.GetNode<Button>("Paste");
+        pasteButton.Text = nGUI.ClipName;
+        pasteButton.Connect("pressed", this, nameof(_OnPasteClipPressed),
+            new GDArray { guid.ToString() });
+        var deleteButton = clipScene.GetNode<Button>("Delete");
+        deleteButton.Connect("pressed", this, nameof(_OnDeleteClipPressed),
+            new GDArray { guid.ToString() });
+        nGUI.nClipsList.AddChild(clipScene);
+    }
+
+    public void _OnPasteClipPressed(string guid) {
+        var op = BeginOperation("Paste Clip");
+        EndOperation(op, Paste(savedClips[new Guid(guid)]));
+    }
+
+    public void _OnDeleteClipPressed(string guid) {
+        nGUI.nClipsList.GetNode(guid).QueueFree();
+        savedClips.Remove(new Guid(guid));
     }
 
     public void _OnVolumeButtonPressed(string guid) {

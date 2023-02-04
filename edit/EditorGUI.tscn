@@ -237,6 +237,28 @@ margin_bottom = 112.0
 shortcut = SubResource( 25 )
 text = "Paste"
 
+[node name="SaveClip" type="Button" parent="TabContainer/Edit"]
+margin_top = 116.0
+margin_right = 152.0
+margin_bottom = 136.0
+text = "Save Clip"
+
+[node name="Clips" type="Panel" parent="TabContainer/Edit"]
+margin_top = 140.0
+margin_right = 152.0
+margin_bottom = 324.0
+size_flags_vertical = 3
+
+[node name="Scroll" type="ScrollContainer" parent="TabContainer/Edit/Clips"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 5.0
+margin_right = -5.0
+
+[node name="VBox" type="VBoxContainer" parent="TabContainer/Edit/Clips/Scroll"]
+margin_right = 142.0
+size_flags_horizontal = 3
+
 [node name="SaveDialog" type="FileDialog" parent="."]
 margin_right = 400.0
 margin_bottom = 250.0
@@ -261,3 +283,14 @@ window_title = "Delete"
 mode_overrides_title = false
 mode = 3
 access = 1
+
+[node name="ClipNameDialog" type="AcceptDialog" parent="."]
+margin_right = 222.0
+margin_bottom = 68.0
+window_title = "Enter Clip Name"
+
+[node name="LineEdit" type="LineEdit" parent="ClipNameDialog"]
+margin_left = 8.0
+margin_top = 8.0
+margin_right = 214.0
+margin_bottom = 32.0

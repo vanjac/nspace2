@@ -20,13 +20,18 @@ public class EditorGUI : Node {
     [NodeRef("TabContainer/Edit/Move")] public Button nMove = null;
     [NodeRef("TabContainer/Edit/Copy")] public Button nCopy = null;
     [NodeRef("TabContainer/Edit/Paste")] public Button nPaste = null;
+    [NodeRef("TabContainer/Edit/SaveClip")] public Button nSaveClip = null;
+    [NodeRef("TabContainer/Edit/Clips/Scroll/VBox")] public Container nClipsList = null;
     [NodeRef("TabContainer/Paint/Grid")] public Container nMaterialsGrid = null;
     [NodeRef("SaveDialog")] public FileDialog nSaveDialog = null;
     [NodeRef("OpenDialog")] public FileDialog nOpenDialog = null;
     [NodeRef("DeleteDialog")] public FileDialog nDeleteDialog = null;
+    [NodeRef("ClipNameDialog")] public AcceptDialog nClipNameDialog = null;
+    [NodeRef("ClipNameDialog/LineEdit")] public LineEdit nClipName = null;
 
     public bool AddSelectEnabled => nAddSelect.Pressed  ^ Input.IsKeyPressed((int)KeyList.Shift);
     public bool MoveEnabled => nMove.Pressed ^ Input.IsKeyPressed((int)KeyList.Shift);
+    public string ClipName => nClipName.Text;
     public string StatsText { set => nStats.Text = value; }
     public string PerfText { set => nPerf.Text = value; }
 
@@ -63,5 +68,11 @@ public class EditorGUI : Node {
     public void ShowDeleteDialog() {
         nDeleteDialog.Invalidate();
         nDeleteDialog.PopupCentered();
+    }
+
+    public void ShowClipNameDialog() {
+        nClipNameDialog.PopupCentered();
+        nClipName.Text = "";
+        nClipName.GrabFocus();
     }
 }
