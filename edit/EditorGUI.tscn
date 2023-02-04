@@ -293,9 +293,24 @@ margin_bottom = 40.0
 size_flags_vertical = 8
 text = "/"
 
-[node name="Perf" type="Label" parent="Status"]
+[node name="Operation" type="Label" parent="Status"]
 margin_left = 13.0
 margin_top = 26.0
 margin_right = 13.0
+margin_bottom = 40.0
+size_flags_vertical = 8
+
+[node name="Sep2" type="Label" parent="Status"]
+margin_left = 17.0
+margin_top = 26.0
+margin_right = 22.0
+margin_bottom = 40.0
+size_flags_vertical = 8
+text = "/"
+
+[node name="Perf" type="Label" parent="Status"]
+margin_left = 26.0
+margin_top = 26.0
+margin_right = 26.0
 margin_bottom = 40.0
 size_flags_vertical = 8

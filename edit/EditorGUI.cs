@@ -13,6 +13,7 @@ public class EditorGUI : Node {
     [NodeRef("Toolbar/View")] public MenuButton nView = null;
     public PopupMenu nViewPopup;
     [NodeRef("Status/Stats")] public Label nStats = null;
+    [NodeRef("Status/Operation")] public Label nOperation = null;
     [NodeRef("Status/Perf")] public Label nPerf = null;
     [NodeRef("TabContainer/Edit/Volumes/Empty")] public Button nEmptyVolume = null;
     [NodeRef("TabContainer/Edit/Volumes/Solid")] public Button nSolidVolume = null;
@@ -38,6 +39,7 @@ public class EditorGUI : Node {
     public string ClipName => nClipName.Text;
     public string StatsText { set => nStats.Text = value; }
     public string PerfText { set => nPerf.Text = value; }
+    public string OperationText { set => nOperation.Text = value; }
 
     public void Init() {
         NodeRefAttribute.GetAllNodes(this);

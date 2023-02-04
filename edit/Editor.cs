@@ -35,7 +35,7 @@ public class Editor : Spatial {
     private Undoer<EditState> undo = new Undoer<EditState>();
     private Stack<Immut<CubeModel>> adjustPos = new Stack<Immut<CubeModel>>();
     private Stack<Immut<CubeModel>> adjustNeg = new Stack<Immut<CubeModel>>();
-    private (string, ulong)? adjustOp;
+    private bool adjusting;
 
     private CubePos selStartMin, selStartMax;
     private Clipping clipboard;
@@ -370,6 +370,7 @@ public class Editor : Spatial {
     }
 
     private void Save() {
+        undo.Push(state);
         var op = BeginOperation("Save");
         bool modified = SimplifyWorld();
         using (var stream = System.IO.File.Open(filePath, System.IO.FileMode.Create)) {
@@ -379,19 +380,18 @@ public class Editor : Spatial {
     }
 
     private (string name, ulong startTick) BeginOperation(string name) {
-        undo.Push(state);
         CubeDebug.allocCount = 0;
         return (name, Time.GetTicksMsec());
     }
 
     private void EndOperation((string name, ulong startTick) op, bool modified) {
-        GD.Print($"{op.name} took {Time.GetTicksMsec() - op.startTick}ms"
-            + $" and created {CubeDebug.allocCount} cubes");
+        nGUI.OperationText = $"{op.name} +{CubeDebug.allocCount} cu"
+            + $"{Time.GetTicksMsec() - op.startTick} ms";
         UpdateState(modified);
     }
 
     private void ResetAdjust() {
-        adjustOp = null;
+        adjusting = false;
         adjustPos.Clear();
         adjustNeg.Clear();
     }
@@ -403,27 +403,31 @@ public class Editor : Spatial {
             return;
         }
 
-        if (adjustOp == null)
-            adjustOp = BeginOperation("Move");
+        if (!adjusting) {
+            undo.Push(state);
+            adjusting = true;
+        }
+        var op = BeginOperation("Move");
+        bool modified = false;
         for (; units > 0; units--) {
             if (adjustNeg.Count != 0) {
-                state.world = adjustNeg.Pop();
+                state.world = Util.AssignChanged(state.world, adjustNeg.Pop(), ref modified);
             } else {
                 adjustPos.Push(state.world);
-                Move(axis, true);
+                modified |= Move(axis, true);
             }
             MoveSelection(axis, 1);
         }
         for (; units < 0; units++) {
             if (adjustPos.Count != 0) {
-                state.world = adjustPos.Pop();
+                state.world = Util.AssignChanged(state.world, adjustPos.Pop(), ref modified);
             } else {
                 adjustNeg.Push(state.world);
-                Move(axis, false);
+                modified |= Move(axis, false);
             }
             MoveSelection(axis, -1);
         }
-        UpdateState(true);
+        EndOperation(op, modified);
     }
 
     /* SIGNAL RECEIVERS */
@@ -484,8 +488,6 @@ public class Editor : Spatial {
     }
 
     public void _OnAdjustEnd() {
-        if (adjustOp != null)
-            EndOperation(adjustOp.Value, false);
         ResetAdjust();
     }
 
@@ -530,6 +532,7 @@ public class Editor : Spatial {
 
     public void _OnPastePressed() {
         if (clipboard.root != null) {
+            undo.Push(state);
             var op = BeginOperation("Paste");
             EndOperation(op, Paste(clipboard));
         }
@@ -551,6 +554,7 @@ public class Editor : Spatial {
     }
 
     public void _OnPasteClipPressed(string guid) {
+        undo.Push(state);
         var op = BeginOperation("Paste Clip");
         EndOperation(op, Paste(savedClips[new Guid(guid)]));
     }
@@ -561,11 +565,13 @@ public class Editor : Spatial {
     }
 
     public void _OnVolumeButtonPressed(string guid) {
+        undo.Push(state);
         var op = BeginOperation("Volumes");
         EndOperation(op, SetVolume(new Guid(guid)));
     }
 
     public void _OnBaseMatButtonPressed(int index) {
+        undo.Push(state);
         var op = BeginOperation("Paint");
         EndOperation(op, Paint(Immut.Create(new Cube.Face {
             base_ = new Cube.Layer { material = materialGuids[index] },
@@ -609,6 +615,7 @@ public class Editor : Spatial {
                 nGUI.ShowDeleteDialog();
                 break;
             case 5: // simplify
+                undo.Push(state);
                 var op = BeginOperation("Simplify"); // TODO shouldn't be undoable
                 EndOperation(op, SimplifyWorld());
                 break;
