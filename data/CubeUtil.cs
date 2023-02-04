@@ -93,7 +93,7 @@ public struct CubePos {
         this.x = this.y = this.z = all;
     }
 
-    private CubePos(Vector3 v) {
+    public CubePos(Vector3 v) {
         this.x = (uint)(long)v.x; this.y = (uint)(long)v.y; this.z = (uint)(long)v.z;
     }
 

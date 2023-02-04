@@ -1,12 +1,14 @@
-[gd_scene load_steps=16 format=2]
+[gd_scene load_steps=18 format=2]
 
+[ext_resource path="res://edit/ResizeHandle.tscn" type="PackedScene" id=1]
+[ext_resource path="res://edit/wire_cube.tres" type="ArrayMesh" id=2]
 [ext_resource path="res://edit/highlight.tres" type="Material" id=13]
 [ext_resource path="res://edit/DebugCube.tscn" type="PackedScene" id=14]
 [ext_resource path="res://edit/TouchController.tscn" type="PackedScene" id=28]
 [ext_resource path="res://view/CubeMesh.tscn" type="PackedScene" id=63]
 [ext_resource path="res://edit/Editor.cs" type="Script" id=64]
 [ext_resource path="res://edit/EditorCamera.tscn" type="PackedScene" id=65]
-[ext_resource path="res://edit/AdjustHandle.tscn" type="PackedScene" id=66]
+[ext_resource path="res://edit/MoveHandle.tscn" type="PackedScene" id=66]
 [ext_resource path="res://edit/EditorGUI.tscn" type="PackedScene" id=69]
 [ext_resource path="res://assets/BuiltIn.tscn" type="PackedScene" id=79]
 
@@ -69,6 +71,32 @@ material = SubResource( 23 )
 ScaleMult = 0.2
 material = SubResource( 24 )
 
+[node name="ResizeHandles" type="Spatial" parent="Editor"]
+
+[node name="H0" parent="Editor/ResizeHandles" instance=ExtResource( 1 )]
+material = SubResource( 30 )
+
+[node name="H1" parent="Editor/ResizeHandles" instance=ExtResource( 1 )]
+material = SubResource( 30 )
+
+[node name="H2" parent="Editor/ResizeHandles" instance=ExtResource( 1 )]
+material = SubResource( 30 )
+
+[node name="H3" parent="Editor/ResizeHandles" instance=ExtResource( 1 )]
+material = SubResource( 30 )
+
+[node name="H4" parent="Editor/ResizeHandles" instance=ExtResource( 1 )]
+material = SubResource( 30 )
+
+[node name="H5" parent="Editor/ResizeHandles" instance=ExtResource( 1 )]
+material = SubResource( 30 )
+
+[node name="H6" parent="Editor/ResizeHandles" instance=ExtResource( 1 )]
+material = SubResource( 30 )
+
+[node name="H7" parent="Editor/ResizeHandles" instance=ExtResource( 1 )]
+material = SubResource( 30 )
+
 [node name="RectSelection" type="Spatial" parent="Editor"]
 visible = false
 
@@ -84,8 +112,11 @@ visible = false
 [node name="MeshInstance" type="MeshInstance" parent="Editor/BoxSelection"]
 transform = Transform( 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0.5, 0.5, 0.5 )
 mesh = SubResource( 13 )
-skeleton = NodePath("../..")
 material/0 = ExtResource( 13 )
+
+[node name="Wire" type="MeshInstance" parent="Editor/BoxSelection"]
+mesh = ExtResource( 2 )
+material/0 = SubResource( 30 )
 
 [node name="PerfTimer" type="Timer" parent="Editor"]
 autostart = true

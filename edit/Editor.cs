@@ -12,12 +12,13 @@ public class Editor : Spatial {
     [NodeRef("DebugCube")] private Spatial nDebugCube = null;
     [NodeRef("RectSelection")] private Spatial nRectSelection = null;
     [NodeRef("BoxSelection")] private Spatial nBoxSelection = null;
-    [NodeRef("ExtrudeAdjust")] private AdjustHandle nExtrudeAdjust = null;
-    [NodeRef("MoveAdjust")] private Spatial nMoveAdjust = null;
-    [NodeRef("MoveAdjust/X")] private AdjustHandle nMoveAdjustX = null;
-    [NodeRef("MoveAdjust/Y")] private AdjustHandle nMoveAdjustY = null;
-    [NodeRef("MoveAdjust/Z")] private AdjustHandle nMoveAdjustZ = null;
-    private AdjustHandle[] nMoveAdjustAxes;
+    [NodeRef("ExtrudeAdjust")] private MoveHandle nExtrudeAdjust = null;
+    [NodeRef("MoveAdjust")] private Spatial nMoveAdjustRoot = null;
+    [NodeRef("MoveAdjust/X")] private MoveHandle nMoveAdjustX = null;
+    [NodeRef("MoveAdjust/Y")] private MoveHandle nMoveAdjustY = null;
+    [NodeRef("MoveAdjust/Z")] private MoveHandle nMoveAdjustZ = null;
+    private MoveHandle[] nMoveAdjustAxes;
+    [NodeRef("ResizeHandles")] private Spatial nResizeHandleRoot = null;
     [NodeRef("EditorCamera")] private EditorCamera nCam = null;
     [NodeRef("/root/Spatial/EditorGUI")] private EditorGUI nGUI;
 
@@ -43,7 +44,14 @@ public class Editor : Spatial {
 
     public override void _Ready() {
         NodeRefAttribute.GetAllNodes(this);
-        nMoveAdjustAxes = new AdjustHandle[] { nMoveAdjustX, nMoveAdjustY, nMoveAdjustZ };
+        nMoveAdjustAxes = new MoveHandle[] { nMoveAdjustX, nMoveAdjustY, nMoveAdjustZ };
+        int handleI = 0;
+        foreach (ResizeHandle handle in nResizeHandleRoot.GetChildren()) {
+            handle.Connect(nameof(ResizeHandle.Adjust), this, nameof(_OnSelectionResize),
+                new GDArray { handleI });
+            handle.Connect(nameof(ResizeHandle.AdjustEnd), this, nameof(_OnSelectionResizeEnd),
+                new GDArray { handleI++ });
+        }
         nGUI.Init();
 
         // https://www.reddit.com/r/godot/comments/d459x2/finally_figured_out_how_to_enable_wireframes_in/
@@ -112,6 +120,8 @@ public class Editor : Spatial {
         nExtrudeAdjust.Update();
         foreach (var adjust in nMoveAdjustAxes)
             adjust.Update();
+        foreach (ResizeHandle handle in nResizeHandleRoot.GetChildren())
+            handle.Update();
 
         nGUI.UpdateState(state, undo);
         nCubeMesh.GridSize = CubeUtil.ModelCubeSize(state.editDepth);
@@ -147,6 +157,19 @@ public class Editor : Spatial {
             size.z = state.selDir ? 1 : -1;
             nRectSelection.Scale = size;
         }
+        for (int i = 0; i < 8; i++) {
+            var handle = nResizeHandleRoot.GetChild<ResizeHandle>(i);
+            handle.Enabled = state.AnySelection;
+            if (state.AnySelection) {
+                CubePos handlePos = state.selMin;
+                for (int axis = 0; axis < 3; axis++)
+                    if ((i & (1 << axis)) != 0)
+                        handlePos[axis] = state.selMax[axis];
+                handle.Translation = handlePos.ToModelPos();
+                if (!handle.Adjusting)
+                    handle.CurrentPos = handlePos;
+            }
+        }
     }
 
     private void UpdateAdjustPos() {
@@ -164,13 +187,15 @@ public class Editor : Spatial {
             return;
 
         Vector3 center = (state.selMin.ToModelPos() + state.selMax.ToModelPos()) / 2;
-        nMoveAdjust.Translation = center;
+        nMoveAdjustRoot.Translation = center;
         nExtrudeAdjust.Translation = center;
 
         float snap = CubeUtil.ModelCubeSize(state.editDepth);
         nExtrudeAdjust.snap = snap;
         foreach (var adjust in nMoveAdjustAxes)
             adjust.snap = snap;
+        foreach (ResizeHandle handle in nResizeHandleRoot.GetChildren())
+            handle.snap = snap;
     }
 
     private Vector3 AxisRotation(int axis, bool dir = true) {
@@ -473,6 +498,28 @@ public class Editor : Spatial {
         if (adjustOp != null)
             EndOperation(adjustOp.Value, false);
         ResetAdjust();
+    }
+
+    public void _OnSelectionResize(Vector3 units, int i) {
+        var handle = nResizeHandleRoot.GetChild<ResizeHandle>(i);
+        int gridSize = (int)CubePos.CubeSize(state.editDepth);
+        CubePos curPos = handle.CurrentPos;
+        CubePos newPos = curPos + new CubePos(units) * gridSize;
+        for (int axis = 0; axis < 3; axis++) {
+            uint min = state.selMin[axis], max = state.selMax[axis];
+            if (curPos[axis] == min)
+                min = newPos[axis];
+            else
+                max = newPos[axis];
+            state.selMin[axis] = Math.Min(min, max);
+            state.selMax[axis] = Math.Max(min, max);
+        }
+        handle.CurrentPos = newPos;
+        UpdateState(false);
+    }
+
+    public void _OnSelectionResizeEnd(int i) {
+        UpdateState(false); // assign correct CurrentPos value
     }
 
     // GUI...

@@ -358,6 +358,7 @@ public static class CubeEdit {
                         stepExtruded = TransferFaces(GetCube(srcRoot, stepPos - sideAxisOff, depth),
                             stepCube, stepExtruded, sideAxis);
                         // extrude front
+                        // TODO also use adjacent front face (lowest priority)
                         stepExtruded = TransferExtendedEdge(minCube, maxCube, stepExtruded,
                             srcChildI: 0, srcFaceAxis: extAxis, dstFaceAxis: sideAxis, extAxis);
                         // extrude side
@@ -411,7 +412,7 @@ public static class CubeEdit {
 
         CubePos offset = CubePos.FromAxisSize(extAxis, extDepth) * (extDir ? 1 : -1);
         return TransferBox(srcRoot, rectMin, rectMax, dstRoot, rectMin + offset, 0);
-    }
+    } // end Extrude()
 
     /// <summary>
     /// Build a cube that is the result of extruding the given cube along one of its sides.
