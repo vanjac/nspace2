@@ -543,7 +543,7 @@ public class Editor : Spatial {
     }
 
     public void _OnClipNameConfirmed() {
-        Guid guid = new Guid();
+        Guid guid = Guid.NewGuid();
         savedClips[guid] = Copy();
         var clipScene = sClipButton.Instance();
         clipScene.Name = guid.ToString();
