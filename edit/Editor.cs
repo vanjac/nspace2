@@ -353,20 +353,20 @@ public class Editor : Spatial {
     }
 
     private void Load(string path) {
-        var startTick = Time.GetTicksMsec();
+        var op = BeginOperation("Load");
         using (var stream = System.IO.File.Open(path, System.IO.FileMode.Open)) {
             try {
                 state = new CubeDeserialize().ReadFile(stream);
             } catch (Exception e) {
+                nGUI.OperationText = "Error loading";
                 GD.Print(e);
                 return;
             }
         }
-        GD.Print($"Load took {Time.GetTicksMsec() - startTick}ms");
         undo.Clear();
         ResetAdjust();
         filePath = path;
-        UpdateState(true);
+        EndOperation(op, true);
     }
 
     private void Save() {
@@ -386,7 +386,7 @@ public class Editor : Spatial {
 
     private void EndOperation((string name, ulong startTick) op, bool modified) {
         nGUI.OperationText = $"{op.name} +{CubeDebug.allocCount} cu"
-            + $"{Time.GetTicksMsec() - op.startTick} ms";
+            + $" {Time.GetTicksMsec() - op.startTick} ms";
         UpdateState(modified);
     }
 
