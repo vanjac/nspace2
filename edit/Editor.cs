@@ -308,10 +308,11 @@ public class Editor : Spatial {
         // fill selection with repeated copies
         int depthDiff = clip.rootDepth - m.rootDepth;
         CubePos pastePos = pasteMin;
+        CubePos pasteStep = (clip.max - clip.min) >> depthDiff;
         bool loopCond(int axis) => pastePos[axis] < pasteMax[axis]
             || (pasteMin[axis] == pasteMax[axis] && pastePos[axis] == pasteMax[axis]);
         void loopStep(int axis) => pastePos[axis] = (clip.min[axis] == clip.max[axis]) ?
-            uint.MaxValue : (pastePos[axis] + ((clip.max[axis] - clip.min[axis]) >> depthDiff));
+            uint.MaxValue : (pastePos[axis] + pasteStep[axis]);
         for (pastePos[2] = pasteMin[2]; loopCond(2); loopStep(2)) {
             for (pastePos[1] = pasteMin[1]; loopCond(1); loopStep(1)) {
                 for (pastePos[0] = pasteMin[0]; loopCond(0); loopStep(0)) {
