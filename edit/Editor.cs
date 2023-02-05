@@ -315,10 +315,13 @@ public class Editor : Spatial {
         for (pastePos[2] = pasteMin[2]; loopCond(2); loopStep(2)) {
             for (pastePos[1] = pasteMin[1]; loopCond(1); loopStep(1)) {
                 for (pastePos[0] = pasteMin[0]; loopCond(0); loopStep(0)) {
-                    var clipLimit = clip.min + ((pasteMax - pastePos) << depthDiff);
-                    m.root = Util.AssignChanged(m.root, CubeEdit.TransferBox(clip.root,
-                        clip.min, CubePos.Min(clip.max, clipLimit),
-                        m.root, pastePos, depthDiff), ref modified);
+                    var pasteLimit = pasteMax - pastePos;
+                    var clipLimit = clip.max;
+                    for (int axis = 0; axis < 3; axis++)
+                        if (pasteLimit[axis] < pasteStep[axis]) // avoid overflow
+                            clipLimit[axis] = clip.min[axis] + (pasteLimit << depthDiff)[axis];
+                    m.root = Util.AssignChanged(m.root, CubeEdit.TransferBox(
+                        clip.root, clip.min, clipLimit, m.root, pastePos, depthDiff), ref modified);
                 }
             }
         }
