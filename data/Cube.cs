@@ -82,7 +82,7 @@ public interface Cube {
     /// </summary>
     public struct SplitLeaf {
         public Guid volume2; // formed by intersection of planes
-        public Arr3<SplitPlane> planes; // tangent to each axis, divide cube
+        public Arr3<Immut<SplitPlane>> planes; // tangent to each axis, divide cube
 
         public SplitLeafImmut Immut() => new SplitLeafImmut(this);
     }
