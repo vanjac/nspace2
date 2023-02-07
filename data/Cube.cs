@@ -81,17 +81,17 @@ public interface Cube {
     /// Used to create slopes and other geometry that can't be represented as cubes.
     /// </summary>
     public struct SplitLeaf {
-        public Guid volume2;
-        public Shape shape; // shape of volume2
-        public byte orientation; // see Godot.GridMap
-        public Immut<Face> splitFace;
+        public Guid volume2; // formed by intersection of planes
+        public Arr3<SplitPlane> planes; // tangent to each axis, divide cube
 
         public SplitLeafImmut Immut() => new SplitLeafImmut(this);
     }
 
-    public enum Shape : byte {
-        Empty, // SplitLeaves with this shape should be removed!
-        FlatEdge, FlatCorner, FlatVertex // wedge, quarter-pyramid, tetrahedron
+    public struct SplitPlane {
+        public Immut<Face> face;
+        public sbyte slope; // power of 2
+        public sbyte quadrant; // -1 = disabled
+        public sbyte offset; // multiple of slope
     }
 
     public class TileCell {
