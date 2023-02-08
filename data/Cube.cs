@@ -81,7 +81,7 @@ public interface Cube {
     /// Used to create slopes and other geometry that can't be represented as cubes.
     /// </summary>
     public struct SplitLeaf {
-        public Guid volume2; // formed by intersection of planes
+        public Guid volume2; // outside intersection of planes
         public Arr3<Immut<SplitPlane>> planes; // tangent to each axis, divide cube
 
         public SplitLeafImmut Immut() => new SplitLeafImmut(this);
