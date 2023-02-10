@@ -50,7 +50,7 @@ public class CubeDeserialize {
         if (writerVersion >= 0x00000003) {
             layer.uOffset = reader.ReadInt32();
             layer.vOffset = reader.ReadInt32();
-            layer.orientation = reader.ReadByte();
+            layer.orient = (Cube.Orient)reader.ReadByte();
         } else {
             reader.ReadUInt16();
             reader.ReadByte();

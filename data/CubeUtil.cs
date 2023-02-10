@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using static Cube.Orient;
 
 public static class CubeUtil {
     /// <summary>
@@ -72,6 +73,19 @@ public static class CubeUtil {
         // TODO selecting half size cube??
         return (CubePos.FromModelPos(pos + absNormal.Round() * CubeUtil.ModelCubeSize(depth + 1))
             - rootPos).Floor(depth) + rootPos;
+    }
+
+    /// <summary>
+    /// Rotate a layer's orientation.
+    /// </summary>
+    /// <param name="orient">Layer orientation.</param>
+    /// <param name="cw">true for clockwise, false for counter-clockwise.</param>
+    /// <returns>Rotated orientation.</returns>
+    public static Cube.Orient Rotate(Cube.Orient orient, bool cw) {
+        bool flipU = orient.HasFlag(FLIP_U), flipV = orient.HasFlag(FLIP_V);
+        bool swapUV = orient.HasFlag(SWAP_UV);
+        orient = (swapUV ? 0 : SWAP_UV) | (flipU ? FLIP_V : 0) | (flipV ? FLIP_U : 0);
+        return orient ^ ((cw ^ flipU ^ flipV ^ swapUV) ? FLIP_V : FLIP_U);
     }
 }
 
@@ -267,18 +281,4 @@ public struct CubePos {
         => a.x <= b.x && a.y <= b.y && a.z <= b.z;
     public static bool operator >=(CubePos a, CubePos b)
         => a.x >= b.x && a.y >= b.y && a.z >= b.z;
-}
-
-public readonly struct FaceProfile {
-    public enum Shape {
-        Empty, Square, Triangle
-    }
-    public readonly Shape shape;
-    public readonly int orientation; // 0-3
-    public FaceProfile(Shape shape, int orientation) {
-        if (shape == Shape.Empty || shape == Shape.Square)
-            orientation = 0;
-        this.shape = shape;
-        this.orientation = orientation;
-    }
 }

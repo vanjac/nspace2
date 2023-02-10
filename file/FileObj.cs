@@ -24,7 +24,7 @@ public static class FileObj {
     public struct Layer {
         public objnum material;
         public int uOffset, vOffset;
-        public byte orientation;
+        public Cube.Orient orient;
     }
 
     public struct Face {

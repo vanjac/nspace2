@@ -183,7 +183,7 @@ size_flags_horizontal = 4
 columns = 3
 script = SubResource( 28 )
 
-[node name="RotateLeft" type="Button" parent="TabContainer/Paint/UV"]
+[node name="RotateCCW" type="Button" parent="TabContainer/Paint/UV"]
 margin_right = 20.0
 margin_bottom = 20.0
 text = "L"
@@ -194,7 +194,7 @@ margin_right = 43.0
 margin_bottom = 20.0
 text = "^"
 
-[node name="RotateRight" type="Button" parent="TabContainer/Paint/UV"]
+[node name="RotateCW" type="Button" parent="TabContainer/Paint/UV"]
 margin_left = 47.0
 margin_right = 67.0
 margin_bottom = 20.0

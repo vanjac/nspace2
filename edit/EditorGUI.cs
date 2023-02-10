@@ -29,6 +29,11 @@ public class EditorGUI : Node {
     [NodeRef("TabContainer/Paint/UV/OffsetDown")] public Button nUVOffsetDown = null;
     [NodeRef("TabContainer/Paint/UV/OffsetLeft")] public Button nUVOffsetLeft = null;
     [NodeRef("TabContainer/Paint/UV/OffsetRight")] public Button nUVOffsetRight = null;
+    [NodeRef("TabContainer/Paint/UV/FlipHoriz")] public Button nUVFlipHoriz = null;
+    [NodeRef("TabContainer/Paint/UV/FlipVert")] public Button nUVFlipVert = null;
+    [NodeRef("TabContainer/Paint/UV/RotateCCW")] public Button nUVRotateCCW = null;
+    [NodeRef("TabContainer/Paint/UV/RotateCW")] public Button nUVRotateCW = null;
+    [NodeRef("TabContainer/Paint/UV/Reset")] public Button nUVReset = null;
     [NodeRef("SaveDialog")] public FileDialog nSaveDialog = null;
     [NodeRef("OpenDialog")] public FileDialog nOpenDialog = null;
     [NodeRef("DeleteDialog")] public FileDialog nDeleteDialog = null;

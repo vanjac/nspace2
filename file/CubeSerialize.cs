@@ -65,7 +65,7 @@ public class CubeSerialize {
     private FileObj.Layer MakeObj(Cube.Layer layer) {
         return new FileObj.Layer {
             material = Cached(layer.material),
-            orientation = layer.orientation,
+            orient = layer.orient,
             uOffset = layer.uOffset,
             vOffset = layer.vOffset,
         };
@@ -76,7 +76,7 @@ public class CubeSerialize {
         writer.Write(layer.material);
         writer.Write(layer.uOffset);
         writer.Write(layer.vOffset);
-        writer.Write(layer.orientation);
+        writer.Write((byte)layer.orient);
     }
 
     private objnum Cached(Immut<Cube.Face> face) {

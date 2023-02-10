@@ -75,6 +75,15 @@ public class Editor : Spatial {
             new GDArray { 0, 1 });
         nGUI.nUVOffsetDown.Connect("pressed", this, nameof(_OnUVOffsetButtonPressed),
             new GDArray { 0, -1 });
+        nGUI.nUVFlipHoriz.Connect("pressed", this, nameof(_OnUVFlipButtonPressed),
+            new GDArray { Cube.Orient.FLIP_U });
+        nGUI.nUVFlipVert.Connect("pressed", this, nameof(_OnUVFlipButtonPressed),
+            new GDArray { Cube.Orient.FLIP_V });
+        nGUI.nUVRotateCCW.Connect("pressed", this, nameof(_OnUVRotateButtonPressed),
+            new GDArray { false });
+        nGUI.nUVRotateCW.Connect("pressed", this, nameof(_OnUVRotateButtonPressed),
+            new GDArray { true });
+        nGUI.nUVReset.Connect("pressed", this, nameof(_OnUVResetButtonPressed));
         nGUI.nEmptyVolume.Connect("pressed", this, nameof(_OnVolumeButtonPressed),
             new GDArray { VOLUME_EMPTY.ToString() });
         nGUI.nSolidVolume.Connect("pressed", this, nameof(_OnVolumeButtonPressed),
@@ -280,15 +289,41 @@ public class Editor : Spatial {
             m.root, state.selMin.ToRootClamped(m), state.selMax.ToRootClamped(m), face));
     }
 
+    private bool ApplyRootFaces(Func<Cube.Face, Cube.Face> func) {
+        return ApplyRoot(m => CubeEdit.ApplyFaces(
+            m.root, state.selMin.ToRootClamped(m), state.selMax.ToRootClamped(m),
+            f => Immut.Create(func(f.Val))));
+    }
+
     private bool UVOffset(int u, int v) {
         int cubeSize = (int)CubePos.CubeSize(state.editDepth);
-        return ApplyRoot(m => CubeEdit.ApplyFaces(
-            m.root, state.selMin.ToRootClamped(m), state.selMax.ToRootClamped(m), f => {
-                Cube.Face newFace = f.Val;
-                newFace.base_.uOffset += u * cubeSize;
-                newFace.base_.vOffset += v * cubeSize;
-                return Immut.Create(newFace);
-            }));
+        return ApplyRootFaces(f => {
+            f.base_.uOffset += u * cubeSize;
+            f.base_.vOffset += v * cubeSize;
+            return f;
+        });
+    }
+
+    private bool UVFlip(Cube.Orient flip) {
+        return ApplyRootFaces(f => {
+            f.base_.orient ^= flip;
+            return f;
+        });
+    }
+
+    private bool UVRotate(bool cw) {
+        return ApplyRootFaces(f => {
+            f.base_.orient = CubeUtil.Rotate(f.base_.orient, cw);
+            return f;
+        });
+    }
+
+    private bool UVReset() {
+        return ApplyRootFaces(f => {
+            f.base_.uOffset = f.base_.vOffset = 0;
+            f.base_.orient = 0;
+            return f;
+        });
     }
 
     private Clipping Copy() {
@@ -613,8 +648,32 @@ public class Editor : Spatial {
     public void _OnUVOffsetButtonPressed(int u, int v) {
         if (state.AnySelection) {
             undo.Push(state);
-            var op = BeginOperation("UV Offset");
+            var op = BeginOperation("Texture Offset");
             EndOperation(op, UVOffset(u, v));
+        }
+    }
+
+    public void _OnUVFlipButtonPressed(Cube.Orient flip) {
+        if (state.AnySelection) {
+            undo.Push(state);
+            var op = BeginOperation("Texture Flip");
+            EndOperation(op, UVFlip(flip));
+        }
+    }
+
+    public void _OnUVRotateButtonPressed(bool cw) {
+        if (state.AnySelection) {
+            undo.Push(state);
+            var op = BeginOperation("Texture Rotate");
+            EndOperation(op, UVRotate(cw));
+        }
+    }
+
+    public void _OnUVResetButtonPressed() {
+        if (state.AnySelection) {
+            undo.Push(state);
+            var op = BeginOperation("Texture Reset");
+            EndOperation(op, UVReset());
         }
     }
 

@@ -178,6 +178,7 @@ public class CubeMesh : Spatial {
         var (vS, vT) = FaceTangents(axis, dir, size);
         var verts = new Vector3[] { pos, pos + vT, pos + vS + vT, pos + vS };
         st.AddNormal(CubeUtil.IndexVector(1 << axis) * (dir ? 1 : -1));
+        var orient = layer.orient;
         var uvs = new Vector2[4];
         for (int i = 0; i < 4; i++) {
             Vector3 cycled = CubeUtil.CycleVector(verts[i], 5 - axis);
@@ -185,6 +186,9 @@ public class CubeMesh : Spatial {
             if (!dir) u = -u;
             u += CubeModel.SCALE * layer.uOffset;
             v += CubeModel.SCALE * layer.vOffset;
+            if ((orient & Cube.Orient.SWAP_UV) != 0) (u, v) = (v, u);
+            if ((orient & Cube.Orient.FLIP_U) != 0) u = -u;
+            if ((orient & Cube.Orient.FLIP_V) != 0) v = -v;
             uvs[i] = new Vector2(u, v);
         }
         st.AddTriangleFan(verts, uvs);

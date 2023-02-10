@@ -60,10 +60,13 @@ public interface Cube {
         public Layer base_, overlay;
     }
 
+    public enum Orient : byte {
+        FLIP_U = 1, FLIP_V = 2, SWAP_UV = 4
+    }
     public struct Layer {
         public Guid material;
         public int uOffset, vOffset; // in world space (not texture space)
-        public byte orientation;
+        public Orient orient;
     }
 
     public interface LeafExt { }
