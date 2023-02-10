@@ -67,16 +67,16 @@ public class CubeSerialize {
             material = Cached(layer.material),
             orientation = layer.orientation,
             uOffset = layer.uOffset,
-            vOffset = layer.vOffset
+            vOffset = layer.vOffset,
         };
     }
 
-    // 5 bytes
+    // 11 bytes
     private void Serialize(BinaryWriter writer, FileObj.Layer layer) {
         writer.Write(layer.material);
-        writer.Write(layer.orientation);
         writer.Write(layer.uOffset);
         writer.Write(layer.vOffset);
+        writer.Write(layer.orientation);
     }
 
     private objnum Cached(Immut<Cube.Face> face) {
@@ -85,7 +85,7 @@ public class CubeSerialize {
             new FileObj.Face { base_ = MakeObj(val.base_), overlay = MakeObj(val.overlay) });
     }
 
-    // 10 bytes
+    // 22 bytes
     private void Serialize(BinaryWriter writer, FileObj.Face face) {
         Serialize(writer, face.base_);
         Serialize(writer, face.overlay);
@@ -208,7 +208,7 @@ public class CubeSerialize {
             foreach (var leaf in leafCache.objects)
                 Serialize(writer, leaf);
 
-            directory[1] = MakeDirEntry(stream, FileConst.Type.Face, faceCache.objects.Count, 10);
+            directory[1] = MakeDirEntry(stream, FileConst.Type.Face, faceCache.objects.Count, 22);
             foreach (var face in faceCache.objects)
                 Serialize(writer, face);
 

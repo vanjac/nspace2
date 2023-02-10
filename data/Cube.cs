@@ -62,8 +62,8 @@ public interface Cube {
 
     public struct Layer {
         public Guid material;
+        public int uOffset, vOffset; // in world space (not texture space)
         public byte orientation;
-        public byte uOffset, vOffset;
     }
 
     public interface LeafExt { }

@@ -176,23 +176,24 @@ public static class CubeEdit {
     }
 
     /// <summary>
-    /// Set all faces within a box located in the root.
+    /// Apply a function to all faces within a box located in the root.
     /// </summary>
     /// <param name="root">Root cube in which the box is located.</param>
     /// <param name="minPos">Minimum coordinates of the box.</param>
     /// <param name="maxPos">Maximum coordinates of the box.</param>
-    /// <param name="face">New value to replace existing faces.</param>
-    /// <returns>The root cube with all faces in the box replaced.</returns>
-    public static Cube PutFaces(Cube root, CubePos minPos, CubePos maxPos, Immut<Cube.Face> face) {
+    /// <param name="face">Function to apply to faces.</param>
+    /// <returns>The root cube with a function applied to all faces in the box.</returns>
+    public static Cube ApplyFaces(Cube root, CubePos minPos, CubePos maxPos,
+            Func<Immut<Cube.Face>, Immut<Cube.Face>> func) {
         for (int axis = 0; axis < 3; axis++) {
             root = MaxSideBoxApply(root, minPos, maxPos, 1 << axis,
                 (ref Cube cube, CubePos pos, int _) => {
                     if (cube is Cube.LeafImmut leaf) {
-                        if (!leaf.face(axis).Val.Equals(face.Val)) {
-                            var newLeaf = leaf.Val;
-                            newLeaf.faces[axis] = face;
-                            cube = newLeaf.Immut();
-                        }
+                        var newLeaf = leaf.Val;
+                        bool modified = false;
+                        newLeaf.faces[axis] = Util.AssignChanged(newLeaf.faces[axis],
+                            func(newLeaf.faces[axis]), ref modified);
+                        if (modified) cube = newLeaf.Immut();
                         return true;
                     }
                     return false;
@@ -203,16 +204,26 @@ public static class CubeEdit {
                 var newLeaf = leaf.Val;
                 bool modified = false;
                 for (int axis = 0; axis < 3; axis++) {
-                    if (!leaf.face(axis).Val.Equals(face.Val)) {
-                        newLeaf.faces[axis] = face;
-                        modified = true;
-                    }
+                    newLeaf.faces[axis] = Util.AssignChanged(newLeaf.faces[axis],
+                        func(newLeaf.faces[axis]), ref modified);
                 }
                 if (modified) cube = newLeaf.Immut();
                 return true;
             }
             return false;
         });
+    }
+
+    /// <summary>
+    /// Set all faces within a box located in the root.
+    /// </summary>
+    /// <param name="root">Root cube in which the box is located.</param>
+    /// <param name="minPos">Minimum coordinates of the box.</param>
+    /// <param name="maxPos">Maximum coordinates of the box.</param>
+    /// <param name="face">New value to replace existing faces.</param>
+    /// <returns>The root cube with all faces in the box replaced.</returns>
+    public static Cube PutFaces(Cube root, CubePos minPos, CubePos maxPos, Immut<Cube.Face> face) {
+        return ApplyFaces(root, minPos, maxPos, (f) => (f.Val.Equals(face.Val) ? f : face));
     }
 
     /// <summary>

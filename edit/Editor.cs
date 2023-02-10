@@ -67,6 +67,14 @@ public class Editor : Spatial {
         nGUI.nFilePopup.Connect("id_pressed", this, nameof(_OnFileMenuItemPressed));
         nGUI.nViewPopup.Connect("id_pressed", this, nameof(_OnViewMenuItemPressed),
             new GDArray { nGUI.nViewPopup });
+        nGUI.nUVOffsetLeft.Connect("pressed", this, nameof(_OnUVOffsetButtonPressed),
+            new GDArray { 1, 0 });
+        nGUI.nUVOffsetRight.Connect("pressed", this, nameof(_OnUVOffsetButtonPressed),
+            new GDArray { -1, 0 });
+        nGUI.nUVOffsetUp.Connect("pressed", this, nameof(_OnUVOffsetButtonPressed),
+            new GDArray { 0, 1 });
+        nGUI.nUVOffsetDown.Connect("pressed", this, nameof(_OnUVOffsetButtonPressed),
+            new GDArray { 0, -1 });
         nGUI.nEmptyVolume.Connect("pressed", this, nameof(_OnVolumeButtonPressed),
             new GDArray { VOLUME_EMPTY.ToString() });
         nGUI.nSolidVolume.Connect("pressed", this, nameof(_OnVolumeButtonPressed),
@@ -280,6 +288,25 @@ public class Editor : Spatial {
         bool modified = false;
         m.root = Util.AssignChanged(m.root, CubeEdit.PutFaces(
             m.root, state.selMin.ToRootClamped(m), state.selMax.ToRootClamped(m), face),
+            ref modified);
+        if (modified)
+            state.world = Immut.Create(m);
+        return modified;
+    }
+
+    private bool UVOffset(int u, int v) {
+        if (!state.AnySelection)
+            return false;
+        int cubeSize = (int)CubePos.CubeSize(state.editDepth);
+        CubeModel m = state.world.Val;
+        bool modified = false;
+        m.root = Util.AssignChanged(m.root, CubeEdit.ApplyFaces(
+            m.root, state.selMin.ToRootClamped(m), state.selMax.ToRootClamped(m), (f) => {
+                Cube.Face newFace = f.Val;
+                newFace.base_.uOffset += u * cubeSize;
+                newFace.base_.vOffset += v * cubeSize;
+                return Immut.Create(newFace);
+            }),
             ref modified);
         if (modified)
             state.world = Immut.Create(m);
@@ -588,6 +615,12 @@ public class Editor : Spatial {
             base_ = new Cube.Layer { material = materialGuids[index] },
             overlay = new Cube.Layer { material = CubeMaterial.DEFAULT_OVERLAY }
         })));
+    }
+
+    public void _OnUVOffsetButtonPressed(int u, int v) {
+        undo.Push(state);
+        var op = BeginOperation("UV Offset");
+        EndOperation(op, UVOffset(u, v));
     }
 
     public void _OnUndoPressed() {

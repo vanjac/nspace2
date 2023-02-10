@@ -2,8 +2,8 @@ using objnum = System.UInt16;
 
 public static class FileConst {
     public static readonly byte[] MAGIC = new byte[] {0x4E, 0x53, 0x50, 0x41}; // NSPA
-    public static readonly uint WRITER_VERSION = 0x00000002;
-    public static readonly uint COMPAT_VERSION = 0x00000002;
+    public static readonly uint WRITER_VERSION = 0x00000003;
+    public static readonly uint COMPAT_VERSION = 0x00000003;
 
     public const objnum NO_OBJECT = objnum.MaxValue;
 
@@ -23,7 +23,8 @@ public static class FileObj {
 
     public struct Layer {
         public objnum material;
-        public byte orientation, uOffset, vOffset;
+        public int uOffset, vOffset;
+        public byte orientation;
     }
 
     public struct Face {

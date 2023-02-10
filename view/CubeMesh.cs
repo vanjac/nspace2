@@ -73,7 +73,7 @@ public class CubeMesh : Spatial {
                 item.Value.Index();
                 // TODO: this is slow in Godot 3! https://github.com/godotengine/godot/issues/56524
                 item.Value.Commit(mesh);
-                if (materials.TryGetValue(item.Key, out Material mat))
+                if (materials.TryGetValue(item.Key, out var mat))
                     mesh.SurfaceSetMaterial(surfI++, mat);
             }
         }
@@ -148,19 +148,20 @@ public class CubeMesh : Spatial {
             return 0;
         bool solidBoundary = min.Val.volume == CubeVolume.SOLID
             || max.Val.volume == CubeVolume.SOLID;
-        Cube.Face face = max.face(axis).Val;
-        Guid material = (solidBoundary ? face.base_ : face.overlay).material;
-        if (!surfs.TryGetValue(material, out SurfaceTool st)) {
-            surfs[material] = st = new SurfaceTool();
+        var face = max.face(axis).Val;
+        var layer = solidBoundary ? face.base_ : face.overlay;
+        var materialId = layer.material;
+        if (!surfs.TryGetValue(materialId, out SurfaceTool st)) {
+            surfs[materialId] = st = new SurfaceTool();
             st.Begin(Mesh.PrimitiveType.Triangles);
         }
         int numQuads = 0;
         if (max.Val.volume != CubeVolume.SOLID) {
-            AddQuad(st, pos, size, axis, true);
+            AddQuad(st, pos, size, axis, true, layer);
             numQuads++;
         }
         if (min.Val.volume != CubeVolume.SOLID) {
-            AddQuad(st, pos, size, axis, false);
+            AddQuad(st, pos, size, axis, false, layer);
             numQuads++;
         }
         return numQuads;
@@ -172,15 +173,19 @@ public class CubeMesh : Spatial {
         return dir ? (vS, vT) : (vT, vS);
     }
 
-    private static void AddQuad(SurfaceTool st, Vector3 pos, float size, int axis, bool dir) {
+    private static void AddQuad(SurfaceTool st, Vector3 pos, float size, int axis, bool dir,
+            Cube.Layer layer) {
         var (vS, vT) = FaceTangents(axis, dir, size);
         var verts = new Vector3[] { pos, pos + vT, pos + vS + vT, pos + vS };
         st.AddNormal(CubeUtil.IndexVector(1 << axis) * (dir ? 1 : -1));
         var uvs = new Vector2[4];
         for (int i = 0; i < 4; i++) {
             Vector3 cycled = CubeUtil.CycleVector(verts[i], 5 - axis);
-            (float u, float v) = (axis == 0) ? (-cycled.y, cycled.x) : (cycled.x, cycled.y);
-            uvs[i] = new Vector2(dir ? u : -u, -v);
+            (float u, float v) = (axis == 0) ? (-cycled.y, -cycled.x) : (cycled.x, -cycled.y);
+            if (!dir) u = -u;
+            u += CubeModel.SCALE * layer.uOffset;
+            v += CubeModel.SCALE * layer.vOffset;
+            uvs[i] = new Vector2(u, v);
         }
         st.AddTriangleFan(verts, uvs);
     }

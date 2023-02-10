@@ -24,7 +24,11 @@ public class EditorGUI : Node {
     [NodeRef("TabContainer/Edit/Paste")] public Button nPaste = null;
     [NodeRef("TabContainer/Edit/SaveClip")] public Button nSaveClip = null;
     [NodeRef("TabContainer/Edit/Clips/Scroll/VBox")] public Container nClipsList = null;
-    [NodeRef("TabContainer/Paint/Grid")] public Container nMaterialsGrid = null;
+    [NodeRef("TabContainer/Paint/Scroll/Grid")] public Container nMaterialsGrid = null;
+    [NodeRef("TabContainer/Paint/UV/OffsetUp")] public Button nUVOffsetUp = null;
+    [NodeRef("TabContainer/Paint/UV/OffsetDown")] public Button nUVOffsetDown = null;
+    [NodeRef("TabContainer/Paint/UV/OffsetLeft")] public Button nUVOffsetLeft = null;
+    [NodeRef("TabContainer/Paint/UV/OffsetRight")] public Button nUVOffsetRight = null;
     [NodeRef("SaveDialog")] public FileDialog nSaveDialog = null;
     [NodeRef("OpenDialog")] public FileDialog nOpenDialog = null;
     [NodeRef("DeleteDialog")] public FileDialog nDeleteDialog = null;

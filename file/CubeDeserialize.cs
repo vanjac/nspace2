@@ -43,17 +43,22 @@ public class CubeDeserialize {
         return new Guid(reader.ReadBytes(16));
     }
 
-    // 5 bytes
+    // 11 bytes
     private Cube.Layer DeserializeLayer(BinaryReader reader) {
         Cube.Layer layer = new Cube.Layer();
         layer.material = guids[reader.ReadUInt16()];
-        layer.orientation = reader.ReadByte();
-        layer.uOffset = reader.ReadByte();
-        layer.vOffset = reader.ReadByte();
+        if (writerVersion >= 0x00000003) {
+            layer.uOffset = reader.ReadInt32();
+            layer.vOffset = reader.ReadInt32();
+            layer.orientation = reader.ReadByte();
+        } else {
+            reader.ReadUInt16();
+            reader.ReadByte();
+        }
         return layer;
     }
 
-    // 10 bytes
+    // 22 bytes
     private Immut<Cube.Face> DeserializeFace(BinaryReader reader) {
         Cube.Face face = new Cube.Face();
         face.base_ = DeserializeLayer(reader);
@@ -181,7 +186,8 @@ public class CubeDeserialize {
             }
 
             guids = LoadObjects(reader, FileConst.Type.Guid, 16, DeserializeGuid);
-            faces = LoadObjects(reader, FileConst.Type.Face, 10, DeserializeFace);
+            faces = LoadObjects(reader, FileConst.Type.Face, writerVersion >= 0x00000003 ? 22 : 10,
+                DeserializeFace);
             leaves = LoadObjects(reader, FileConst.Type.Leaf, 8, DeserializeLeaf);
             cubes = LoadObjects(reader, FileConst.Type.Cube, 0, DeserializeCube);
             if (writerVersion >= 0x00000002)
