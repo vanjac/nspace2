@@ -1,6 +1,7 @@
 [gd_scene load_steps=17 format=2]
 
 [ext_resource path="res://edit/EditorGUI.cs" type="Script" id=1]
+[ext_resource path="res://edit/LayerPaint.tscn" type="PackedScene" id=2]
 
 [sub_resource type="InputEventKey" id=14]
 scancode = 91
@@ -37,13 +38,6 @@ scancode = 83
 
 [sub_resource type="ShortCut" id=23]
 shortcut = SubResource( 22 )
-
-[sub_resource type="GDScript" id=28]
-script/source = "extends Control
-
-func _on_UVToggle_toggled(button_pressed):
-	visible = button_pressed
-"
 
 [sub_resource type="InputEventKey" id=26]
 control = true
@@ -159,7 +153,7 @@ modulate = Color( 1, 1, 1, 0.784314 )
 anchor_bottom = 1.0
 margin_right = 160.0
 
-[node name="Paint" type="VBoxContainer" parent="TabContainer"]
+[node name="Paint" type="TabContainer" parent="TabContainer"]
 anchor_right = 1.0
 anchor_bottom = 1.0
 margin_left = 4.0
@@ -167,89 +161,10 @@ margin_top = 32.0
 margin_right = -4.0
 margin_bottom = -4.0
 
-[node name="UVToggle" type="Button" parent="TabContainer/Paint"]
-margin_right = 152.0
-margin_bottom = 20.0
-toggle_mode = true
-text = "UV Edit"
+[node name="Base" parent="TabContainer/Paint" instance=ExtResource( 2 )]
 
-[node name="UV" type="GridContainer" parent="TabContainer/Paint"]
+[node name="Over" parent="TabContainer/Paint" instance=ExtResource( 2 )]
 visible = false
-margin_left = 42.0
-margin_top = 24.0
-margin_right = 109.0
-margin_bottom = 92.0
-size_flags_horizontal = 4
-columns = 3
-script = SubResource( 28 )
-
-[node name="RotateCCW" type="Button" parent="TabContainer/Paint/UV"]
-margin_right = 20.0
-margin_bottom = 20.0
-text = "L"
-
-[node name="OffsetUp" type="Button" parent="TabContainer/Paint/UV"]
-margin_left = 24.0
-margin_right = 43.0
-margin_bottom = 20.0
-text = "^"
-
-[node name="RotateCW" type="Button" parent="TabContainer/Paint/UV"]
-margin_left = 47.0
-margin_right = 67.0
-margin_bottom = 20.0
-text = "R"
-
-[node name="OffsetLeft" type="Button" parent="TabContainer/Paint/UV"]
-margin_top = 24.0
-margin_right = 20.0
-margin_bottom = 44.0
-text = "<"
-
-[node name="Reset" type="Button" parent="TabContainer/Paint/UV"]
-margin_left = 24.0
-margin_top = 24.0
-margin_right = 43.0
-margin_bottom = 44.0
-text = "."
-
-[node name="OffsetRight" type="Button" parent="TabContainer/Paint/UV"]
-margin_left = 47.0
-margin_top = 24.0
-margin_right = 67.0
-margin_bottom = 44.0
-text = ">"
-
-[node name="FlipHoriz" type="Button" parent="TabContainer/Paint/UV"]
-margin_top = 48.0
-margin_right = 20.0
-margin_bottom = 68.0
-text = "-"
-
-[node name="OffsetDown" type="Button" parent="TabContainer/Paint/UV"]
-margin_left = 24.0
-margin_top = 48.0
-margin_right = 43.0
-margin_bottom = 68.0
-text = "v"
-
-[node name="FlipVert" type="Button" parent="TabContainer/Paint/UV"]
-margin_left = 47.0
-margin_top = 48.0
-margin_right = 67.0
-margin_bottom = 68.0
-text = "|"
-
-[node name="Scroll" type="ScrollContainer" parent="TabContainer/Paint"]
-margin_top = 24.0
-margin_right = 152.0
-margin_bottom = 324.0
-size_flags_vertical = 3
-
-[node name="Grid" type="GridContainer" parent="TabContainer/Paint/Scroll"]
-margin_right = 152.0
-size_flags_horizontal = 3
-columns = 2
 
 [node name="Edit" type="VBoxContainer" parent="TabContainer"]
 visible = false
@@ -399,5 +314,3 @@ margin_top = 26.0
 margin_right = 26.0
 margin_bottom = 40.0
 size_flags_vertical = 8
-
-[connection signal="toggled" from="TabContainer/Paint/UVToggle" to="TabContainer/Paint/UV" method="_on_UVToggle_toggled"]

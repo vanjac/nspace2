@@ -146,23 +146,20 @@ public class CubeMesh : Spatial {
             Vector3 pos, float size, int axis, Dictionary<Guid, SurfaceTool> surfs) {
         if (min.Val.volume == max.Val.volume)
             return 0;
-        bool solidBoundary = min.Val.volume == CubeVolume.SOLID
-            || max.Val.volume == CubeVolume.SOLID;
         var face = max.face(axis).Val;
-        var layer = solidBoundary ? face.base_ : face.overlay;
-        var materialId = layer.material;
-        if (!surfs.TryGetValue(materialId, out SurfaceTool st)) {
-            surfs[materialId] = st = new SurfaceTool();
-            st.Begin(Mesh.PrimitiveType.Triangles);
-        }
-        int numQuads = 0;
-        if (max.Val.volume != CubeVolume.SOLID) {
-            AddQuad(st, pos, size, axis, true, layer);
-            numQuads++;
-        }
-        if (min.Val.volume != CubeVolume.SOLID) {
-            AddQuad(st, pos, size, axis, false, layer);
-            numQuads++;
+        int numQuads;
+        if (min.Val.volume == CubeVolume.SOLID || max.Val.volume == CubeVolume.SOLID) {
+            bool dir = min.Val.volume == CubeVolume.SOLID;
+            AddQuad(pos, size, axis, dir, face.base_, surfs);
+            numQuads = 1;
+            if (face.overlay.material != CubeMaterial.DEFAULT_OVERLAY) {
+                AddQuad(pos, size, axis, dir, face.overlay, surfs);
+                numQuads = 2;
+            }
+        } else {
+            AddQuad(pos, size, axis, true, face.overlay, surfs);
+            AddQuad(pos, size, axis, false, face.overlay, surfs);
+            numQuads = 2;
         }
         return numQuads;
     }
@@ -173,8 +170,12 @@ public class CubeMesh : Spatial {
         return dir ? (vS, vT) : (vT, vS);
     }
 
-    private static void AddQuad(SurfaceTool st, Vector3 pos, float size, int axis, bool dir,
-            Cube.Layer layer) {
+    private static void AddQuad(Vector3 pos, float size, int axis, bool dir, Cube.Layer layer,
+            Dictionary<Guid, SurfaceTool> surfs) {
+        if (!surfs.TryGetValue(layer.material, out SurfaceTool st)) {
+            surfs[layer.material] = st = new SurfaceTool();
+            st.Begin(Mesh.PrimitiveType.Triangles);
+        }
         var (vS, vT) = FaceTangents(axis, dir, size);
         var verts = new Vector3[] { pos, pos + vT, pos + vS + vT, pos + vS };
         st.AddNormal(CubeUtil.IndexVector(1 << axis) * (dir ? 1 : -1));

@@ -28,7 +28,6 @@ public class Editor : Spatial {
         public int rootDepth;
     }
 
-    private Guid[] materialGuids;
     private Dictionary<Guid, Material> materialsDict = new Dictionary<Guid, Material>();
 
     private EditState state;
@@ -67,23 +66,6 @@ public class Editor : Spatial {
         nGUI.nFilePopup.Connect("id_pressed", this, nameof(_OnFileMenuItemPressed));
         nGUI.nViewPopup.Connect("id_pressed", this, nameof(_OnViewMenuItemPressed),
             new GDArray { nGUI.nViewPopup });
-        nGUI.nUVOffsetLeft.Connect("pressed", this, nameof(_OnUVOffsetButtonPressed),
-            new GDArray { 1, 0 });
-        nGUI.nUVOffsetRight.Connect("pressed", this, nameof(_OnUVOffsetButtonPressed),
-            new GDArray { -1, 0 });
-        nGUI.nUVOffsetUp.Connect("pressed", this, nameof(_OnUVOffsetButtonPressed),
-            new GDArray { 0, 1 });
-        nGUI.nUVOffsetDown.Connect("pressed", this, nameof(_OnUVOffsetButtonPressed),
-            new GDArray { 0, -1 });
-        nGUI.nUVFlipHoriz.Connect("pressed", this, nameof(_OnUVFlipButtonPressed),
-            new GDArray { Cube.Orient.FLIP_U });
-        nGUI.nUVFlipVert.Connect("pressed", this, nameof(_OnUVFlipButtonPressed),
-            new GDArray { Cube.Orient.FLIP_V });
-        nGUI.nUVRotateCCW.Connect("pressed", this, nameof(_OnUVRotateButtonPressed),
-            new GDArray { false });
-        nGUI.nUVRotateCW.Connect("pressed", this, nameof(_OnUVRotateButtonPressed),
-            new GDArray { true });
-        nGUI.nUVReset.Connect("pressed", this, nameof(_OnUVResetButtonPressed));
         nGUI.nEmptyVolume.Connect("pressed", this, nameof(_OnVolumeButtonPressed),
             new GDArray { VOLUME_EMPTY.ToString() });
         nGUI.nSolidVolume.Connect("pressed", this, nameof(_OnVolumeButtonPressed),
@@ -99,32 +81,60 @@ public class Editor : Spatial {
         nGUI.nDeleteDialog.Connect("dir_selected", this, nameof(_OnDeleteDirSelected));
         nGUI.nClipNameDialog.Connect("confirmed", this, nameof(_OnClipNameConfirmed));
 
-        materialGuids = new Guid[nBuiltIn.baseMaterials.Length + 1];
-        for (int i = 0; i < nBuiltIn.baseMaterials.Length; i++) {
-            Resource matInfo = nBuiltIn.baseMaterials[i];
+        InitLayerPaintGUI(nGUI.nBasePaint, false, nBuiltIn.baseMaterials);
+        InitLayerPaintGUI(nGUI.nOverlayPaint, true, nBuiltIn.overlayMaterials);
 
+        NewWorld(VOLUME_EMPTY, CubeVolume.SOLID);
+    }
+
+    private void InitLayerPaintGUI(LayerPaint gui, bool overlay, Resource[] matInfos) {
+        gui.Init();
+        gui.nUVOffsetLeft.Connect("pressed", this, nameof(_OnUVOffsetButtonPressed),
+            new GDArray { overlay, 1, 0 });
+        gui.nUVOffsetRight.Connect("pressed", this, nameof(_OnUVOffsetButtonPressed),
+            new GDArray { overlay, -1, 0 });
+        gui.nUVOffsetUp.Connect("pressed", this, nameof(_OnUVOffsetButtonPressed),
+            new GDArray { overlay, 0, 1 });
+        gui.nUVOffsetDown.Connect("pressed", this, nameof(_OnUVOffsetButtonPressed),
+            new GDArray { overlay, 0, -1 });
+        gui.nUVFlipHoriz.Connect("pressed", this, nameof(_OnUVFlipButtonPressed),
+            new GDArray { overlay, Cube.Orient.FLIP_U });
+        gui.nUVFlipVert.Connect("pressed", this, nameof(_OnUVFlipButtonPressed),
+            new GDArray { overlay, Cube.Orient.FLIP_V });
+        gui.nUVRotateCCW.Connect("pressed", this, nameof(_OnUVRotateButtonPressed),
+            new GDArray { overlay, false });
+        gui.nUVRotateCW.Connect("pressed", this, nameof(_OnUVRotateButtonPressed),
+            new GDArray { overlay, true });
+        gui.nUVReset.Connect("pressed", this, nameof(_OnUVResetButtonPressed),
+            new GDArray { overlay });
+
+        foreach (Resource matInfo in matInfos) {
             SpatialMaterial material = new SpatialMaterial();
             Texture texture = (Texture)matInfo.Get("texture");
             material.AlbedoTexture = texture;
             Vector2 textureScale = (Vector2)matInfo.Get("texture_scale");
             material.Uv1Scale = new Vector3(textureScale.x, textureScale.y, 1);
+            if (overlay) {
+                material.ParamsGrowAmount = 0.001f;
+                if ((bool)matInfo.Get("cutout")) {
+                    material.ParamsUseAlphaScissor = true;
+                    material.ParamsAlphaScissorThreshold = 0.5f;
+                } else {
+                    material.FlagsTransparent = true;
+                }
+            }
 
             Guid guid = new Guid((string)matInfo.Get("guid"));
             if (guid == Guid.Empty)
                 throw new Exception("Missing material GUID");
             if (materialsDict.ContainsKey(guid))
                 throw new Exception("Duplicate material GUIDs");
-            materialGuids[i] = guid;
             materialsDict[guid] = material;
 
-            var button = nGUI.AddMaterialButton(texture);
-            button.Connect("pressed", this, nameof(_OnBaseMatButtonPressed), new GDArray { i });
+            var button = gui.AddMaterialButton(texture);
+            button.Connect("pressed", this, nameof(_OnMatButtonPressed),
+                new GDArray { overlay, guid.ToString() });
         }
-
-        materialGuids[nBuiltIn.baseMaterials.Length] = CubeMaterial.DEFAULT_OVERLAY;
-        materialsDict[CubeMaterial.DEFAULT_OVERLAY] = nBuiltIn.defaultOverlay;
-
-        NewWorld(VOLUME_EMPTY, CubeVolume.SOLID);
     }
 
     private void UpdateState(bool updateWorld) {
@@ -284,45 +294,50 @@ public class Editor : Spatial {
         return modified;
     }
 
-    private bool Paint(Immut<Cube.Face> face) {
-        return ApplyRoot(m => CubeEdit.PutFaces(
-            m.root, state.selMin.ToRootClamped(m), state.selMax.ToRootClamped(m), face));
-    }
-
-    private bool ApplyRootFaces(Func<Cube.Face, Cube.Face> func) {
+    private bool ApplyRootFaceLayers(bool overlay, Func<Cube.Layer, Cube.Layer> func) {
         return ApplyRoot(m => CubeEdit.ApplyFaces(
-            m.root, state.selMin.ToRootClamped(m), state.selMax.ToRootClamped(m),
-            f => Immut.Create(func(f.Val))));
+            m.root, state.selMin.ToRootClamped(m), state.selMax.ToRootClamped(m), f => {
+                var newFace = f.Val;
+                if (overlay)
+                    newFace.overlay = func(newFace.overlay);
+                else
+                    newFace.base_ = func(newFace.base_);
+                return newFace.Equals(f.Val) ? f : Immut.Create(newFace);
+            }));
     }
 
-    private bool UVOffset(int u, int v) {
+    private bool Paint(bool overlay, Cube.Layer layer) {
+        return ApplyRootFaceLayers(overlay, _ => layer);
+    }
+
+    private bool UVOffset(bool overlay, int u, int v) {
         int cubeSize = (int)CubePos.CubeSize(state.editDepth);
-        return ApplyRootFaces(f => {
-            f.base_.uOffset += u * cubeSize;
-            f.base_.vOffset += v * cubeSize;
-            return f;
+        return ApplyRootFaceLayers(overlay, l => {
+            l.uOffset += u * cubeSize;
+            l.vOffset += v * cubeSize;
+            return l;
         });
     }
 
-    private bool UVFlip(Cube.Orient flip) {
-        return ApplyRootFaces(f => {
-            f.base_.orient ^= flip;
-            return f;
+    private bool UVFlip(bool overlay, Cube.Orient flip) {
+        return ApplyRootFaceLayers(overlay, l => {
+            l.orient ^= flip;
+            return l;
         });
     }
 
-    private bool UVRotate(bool cw) {
-        return ApplyRootFaces(f => {
-            f.base_.orient = CubeUtil.Rotate(f.base_.orient, cw);
-            return f;
+    private bool UVRotate(bool overlay, bool cw) {
+        return ApplyRootFaceLayers(overlay, l => {
+            l.orient = CubeUtil.Rotate(l.orient, cw);
+            return l;
         });
     }
 
-    private bool UVReset() {
-        return ApplyRootFaces(f => {
-            f.base_.uOffset = f.base_.vOffset = 0;
-            f.base_.orient = 0;
-            return f;
+    private bool UVReset(bool overlay) {
+        return ApplyRootFaceLayers(overlay, l => {
+            l.uOffset = l.vOffset = 0;
+            l.orient = 0;
+            return l;
         });
     }
 
@@ -634,46 +649,43 @@ public class Editor : Spatial {
         }
     }
 
-    public void _OnBaseMatButtonPressed(int index) {
+    public void _OnMatButtonPressed(bool overlay, string guid) {
         if (state.AnySelection) {
             undo.Push(state);
             var op = BeginOperation("Paint");
-            EndOperation(op, Paint(Immut.Create(new Cube.Face {
-                base_ = new Cube.Layer { material = materialGuids[index] },
-                overlay = new Cube.Layer { material = CubeMaterial.DEFAULT_OVERLAY }
-            })));
+            EndOperation(op, Paint(overlay, new Cube.Layer { material = new Guid(guid) }));
         }
     }
 
-    public void _OnUVOffsetButtonPressed(int u, int v) {
+    public void _OnUVOffsetButtonPressed(bool overlay, int u, int v) {
         if (state.AnySelection) {
             undo.Push(state);
             var op = BeginOperation("Texture Offset");
-            EndOperation(op, UVOffset(u, v));
+            EndOperation(op, UVOffset(overlay, u, v));
         }
     }
 
-    public void _OnUVFlipButtonPressed(Cube.Orient flip) {
+    public void _OnUVFlipButtonPressed(bool overlay, Cube.Orient flip) {
         if (state.AnySelection) {
             undo.Push(state);
             var op = BeginOperation("Texture Flip");
-            EndOperation(op, UVFlip(flip));
+            EndOperation(op, UVFlip(overlay, flip));
         }
     }
 
-    public void _OnUVRotateButtonPressed(bool cw) {
+    public void _OnUVRotateButtonPressed(bool overlay, bool cw) {
         if (state.AnySelection) {
             undo.Push(state);
             var op = BeginOperation("Texture Rotate");
-            EndOperation(op, UVRotate(cw));
+            EndOperation(op, UVRotate(overlay, cw));
         }
     }
 
-    public void _OnUVResetButtonPressed() {
+    public void _OnUVResetButtonPressed(bool overlay) {
         if (state.AnySelection) {
             undo.Push(state);
             var op = BeginOperation("Texture Reset");
-            EndOperation(op, UVReset());
+            EndOperation(op, UVReset(overlay));
         }
     }
 

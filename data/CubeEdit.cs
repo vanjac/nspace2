@@ -215,18 +215,6 @@ public static class CubeEdit {
     }
 
     /// <summary>
-    /// Set all faces within a box located in the root.
-    /// </summary>
-    /// <param name="root">Root cube in which the box is located.</param>
-    /// <param name="minPos">Minimum coordinates of the box.</param>
-    /// <param name="maxPos">Maximum coordinates of the box.</param>
-    /// <param name="face">New value to replace existing faces.</param>
-    /// <returns>The root cube with all faces in the box replaced.</returns>
-    public static Cube PutFaces(Cube root, CubePos minPos, CubePos maxPos, Immut<Cube.Face> face) {
-        return ApplyFaces(root, minPos, maxPos, f => (f.Val.Equals(face.Val) ? f : face));
-    }
-
-    /// <summary>
     /// Set all faces coplanar with the negative side of the given axis, recursively.
     /// </summary>
     /// <param name="cube">Target cube containing faces to be set.</param>
@@ -729,6 +717,7 @@ public static class CubeEdit {
                     as Cube.LeafImmut;
                 if (MaxSideVolumeEqual(minCubes[axis], axis, childLeaf.Val.volume))
                     continue; // face will not be used since there's no boundary
+                // TODO: base material not relevant between non-solid volumes!
                 if (!childLeaf.face(axis).Val.Equals(simplified.faces[axis].Val)) {
                     if (hasBoundary)
                         return null; // boundaries are different, can't merge

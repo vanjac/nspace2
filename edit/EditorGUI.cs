@@ -24,22 +24,14 @@ public class EditorGUI : Node {
     [NodeRef("TabContainer/Edit/Paste")] public Button nPaste = null;
     [NodeRef("TabContainer/Edit/SaveClip")] public Button nSaveClip = null;
     [NodeRef("TabContainer/Edit/Clips/Scroll/VBox")] public Container nClipsList = null;
-    [NodeRef("TabContainer/Paint/Scroll/Grid")] public Container nMaterialsGrid = null;
-    [NodeRef("TabContainer/Paint/UV/OffsetUp")] public Button nUVOffsetUp = null;
-    [NodeRef("TabContainer/Paint/UV/OffsetDown")] public Button nUVOffsetDown = null;
-    [NodeRef("TabContainer/Paint/UV/OffsetLeft")] public Button nUVOffsetLeft = null;
-    [NodeRef("TabContainer/Paint/UV/OffsetRight")] public Button nUVOffsetRight = null;
-    [NodeRef("TabContainer/Paint/UV/FlipHoriz")] public Button nUVFlipHoriz = null;
-    [NodeRef("TabContainer/Paint/UV/FlipVert")] public Button nUVFlipVert = null;
-    [NodeRef("TabContainer/Paint/UV/RotateCCW")] public Button nUVRotateCCW = null;
-    [NodeRef("TabContainer/Paint/UV/RotateCW")] public Button nUVRotateCW = null;
-    [NodeRef("TabContainer/Paint/UV/Reset")] public Button nUVReset = null;
+    [NodeRef("TabContainer/Paint/Base")] public LayerPaint nBasePaint = null;
+    [NodeRef("TabContainer/Paint/Over")] public LayerPaint nOverlayPaint = null;
     [NodeRef("SaveDialog")] public FileDialog nSaveDialog = null;
     [NodeRef("OpenDialog")] public FileDialog nOpenDialog = null;
     [NodeRef("DeleteDialog")] public FileDialog nDeleteDialog = null;
     [NodeRef("ClipNameDialog")] public AcceptDialog nClipNameDialog = null;
     [NodeRef("ClipNameDialog/LineEdit")] public LineEdit nClipName = null;
-    private PackedScene sMatButton, sClipGroup;
+    private PackedScene sClipGroup;
 
     public bool AddSelectEnabled {
         get => nAddSelect.Pressed;
@@ -56,7 +48,6 @@ public class EditorGUI : Node {
         NodeRefAttribute.GetAllNodes(this);
         nFilePopup = nFile.GetPopup();
         nViewPopup = nView.GetPopup();
-        sMatButton = GD.Load<PackedScene>("res://edit/MaterialButton.tscn");
         sClipGroup = GD.Load<PackedScene>("res://edit/ClipGroup.tscn");
     }
 
@@ -72,13 +63,6 @@ public class EditorGUI : Node {
             return $"1 / {(int)(1 / size)}";
         else
             return size.ToString();
-    }
-
-    public Button AddMaterialButton(Texture texture) {
-        var instance = sMatButton.Instance<Button>();
-        instance.Icon = texture;
-        nMaterialsGrid.AddChild(instance);
-        return instance;
     }
 
     public (Button pasteButton, Button deleteButton) AddClipGroup(string id, string name) {

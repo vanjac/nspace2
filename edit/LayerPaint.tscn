@@ -1,0 +1,105 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://edit/LayerPaint.cs" type="Script" id=1]
+
+[sub_resource type="GDScript" id=28]
+script/source = "extends Control
+
+func _on_UVToggle_toggled(button_pressed):
+	visible = button_pressed
+"
+
+[node name="LayerPaint" type="VBoxContainer"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_left = 4.0
+margin_top = 32.0
+margin_right = -4.0
+margin_bottom = -4.0
+script = ExtResource( 1 )
+
+[node name="UVToggle" type="Button" parent="."]
+margin_right = 632.0
+margin_bottom = 20.0
+toggle_mode = true
+text = "UV Edit"
+
+[node name="UV" type="GridContainer" parent="."]
+visible = false
+margin_left = 282.0
+margin_top = 24.0
+margin_right = 349.0
+margin_bottom = 92.0
+size_flags_horizontal = 4
+columns = 3
+script = SubResource( 28 )
+
+[node name="RotateCCW" type="Button" parent="UV"]
+margin_right = 20.0
+margin_bottom = 20.0
+text = "L"
+
+[node name="OffsetUp" type="Button" parent="UV"]
+margin_left = 24.0
+margin_right = 43.0
+margin_bottom = 20.0
+text = "^"
+
+[node name="RotateCW" type="Button" parent="UV"]
+margin_left = 47.0
+margin_right = 67.0
+margin_bottom = 20.0
+text = "R"
+
+[node name="OffsetLeft" type="Button" parent="UV"]
+margin_top = 24.0
+margin_right = 20.0
+margin_bottom = 44.0
+text = "<"
+
+[node name="Reset" type="Button" parent="UV"]
+margin_left = 24.0
+margin_top = 24.0
+margin_right = 43.0
+margin_bottom = 44.0
+text = "."
+
+[node name="OffsetRight" type="Button" parent="UV"]
+margin_left = 47.0
+margin_top = 24.0
+margin_right = 67.0
+margin_bottom = 44.0
+text = ">"
+
+[node name="FlipHoriz" type="Button" parent="UV"]
+margin_top = 48.0
+margin_right = 20.0
+margin_bottom = 68.0
+text = "-"
+
+[node name="OffsetDown" type="Button" parent="UV"]
+margin_left = 24.0
+margin_top = 48.0
+margin_right = 43.0
+margin_bottom = 68.0
+text = "v"
+
+[node name="FlipVert" type="Button" parent="UV"]
+margin_left = 47.0
+margin_top = 48.0
+margin_right = 67.0
+margin_bottom = 68.0
+text = "|"
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+margin_top = 24.0
+margin_right = 632.0
+margin_bottom = 324.0
+size_flags_vertical = 3
+
+[node name="Grid" type="GridContainer" parent="Scroll"]
+margin_right = 632.0
+size_flags_horizontal = 3
+columns = 2
+
+[connection signal="toggled" from="UVToggle" to="UV" method="_on_UVToggle_toggled"]
