@@ -251,8 +251,6 @@ public class Editor : Spatial {
     }
 
     private bool Move(int axis, bool dir) {
-        if (!state.AnySelection)
-            return false;
         CubePos axisOff = CubePos.FromAxisSize(axis, state.editDepth) * (dir ? 1 : -1);
         bool worldModified = ExpandIncludeSelection(axisOff);
 
@@ -269,8 +267,6 @@ public class Editor : Spatial {
     }
 
     private bool SetVolume(Guid volume) {
-        if (!state.AnySelection)
-            return false;
         bool worldModified = ExpandIncludeSelection(CubePos.ZERO);
         CubeModel m = state.world.Val;
         bool rootModified = false;
@@ -282,8 +278,6 @@ public class Editor : Spatial {
     }
 
     private bool Paint(Immut<Cube.Face> face) {
-        if (!state.AnySelection)
-            return false;
         CubeModel m = state.world.Val;
         bool modified = false;
         m.root = Util.AssignChanged(m.root, CubeEdit.PutFaces(
@@ -295,8 +289,6 @@ public class Editor : Spatial {
     }
 
     private bool UVOffset(int u, int v) {
-        if (!state.AnySelection)
-            return false;
         int cubeSize = (int)CubePos.CubeSize(state.editDepth);
         CubeModel m = state.world.Val;
         bool modified = false;
@@ -324,8 +316,6 @@ public class Editor : Spatial {
     }
 
     private bool Paste(Clipping clip) {
-        if (!state.AnySelection)
-            return false;
         ExpandIncludeSelection(CubePos.ZERO);
         CubeModel m = state.world.Val;
         CubePos pasteMin = state.selMin.ToRoot(m), pasteMax = state.selMax.ToRoot(m);
@@ -431,6 +421,8 @@ public class Editor : Spatial {
     }
 
     private void MoveAdjust(int axis, int units) {
+        if (!state.AnySelection)
+            return;
         if (nGUI.MoveSelectEnabled ^ Input.IsKeyPressed((int)KeyList.Shift)) {
             MoveSelection(axis, units);
             UpdateState(false);
@@ -569,7 +561,7 @@ public class Editor : Spatial {
     }
 
     public void _OnPastePressed() {
-        if (clipboard.root != null) {
+        if (clipboard.root != null && state.AnySelection) {
             undo.Push(state);
             var op = BeginOperation("Paste");
             EndOperation(op, Paste(clipboard));
@@ -592,9 +584,11 @@ public class Editor : Spatial {
     }
 
     public void _OnPasteClipPressed(string guid) {
-        undo.Push(state);
-        var op = BeginOperation("Paste Clip");
-        EndOperation(op, Paste(savedClips[new Guid(guid)]));
+        if (state.AnySelection) {
+            undo.Push(state);
+            var op = BeginOperation("Paste Clip");
+            EndOperation(op, Paste(savedClips[new Guid(guid)]));
+        }
     }
 
     public void _OnDeleteClipPressed(string guid) {
@@ -603,24 +597,30 @@ public class Editor : Spatial {
     }
 
     public void _OnVolumeButtonPressed(string guid) {
-        undo.Push(state);
-        var op = BeginOperation("Volumes");
-        EndOperation(op, SetVolume(new Guid(guid)));
+        if (state.AnySelection) {
+            undo.Push(state);
+            var op = BeginOperation("Volumes");
+            EndOperation(op, SetVolume(new Guid(guid)));
+        }
     }
 
     public void _OnBaseMatButtonPressed(int index) {
-        undo.Push(state);
-        var op = BeginOperation("Paint");
-        EndOperation(op, Paint(Immut.Create(new Cube.Face {
-            base_ = new Cube.Layer { material = materialGuids[index] },
-            overlay = new Cube.Layer { material = CubeMaterial.DEFAULT_OVERLAY }
-        })));
+        if (state.AnySelection) {
+            undo.Push(state);
+            var op = BeginOperation("Paint");
+            EndOperation(op, Paint(Immut.Create(new Cube.Face {
+                base_ = new Cube.Layer { material = materialGuids[index] },
+                overlay = new Cube.Layer { material = CubeMaterial.DEFAULT_OVERLAY }
+            })));
+        }
     }
 
     public void _OnUVOffsetButtonPressed(int u, int v) {
-        undo.Push(state);
-        var op = BeginOperation("UV Offset");
-        EndOperation(op, UVOffset(u, v));
+        if (state.AnySelection) {
+            undo.Push(state);
+            var op = BeginOperation("UV Offset");
+            EndOperation(op, UVOffset(u, v));
+        }
     }
 
     public void _OnUndoPressed() {
