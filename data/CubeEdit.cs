@@ -223,7 +223,7 @@ public static class CubeEdit {
     /// <param name="face">New value to replace existing faces.</param>
     /// <returns>The root cube with all faces in the box replaced.</returns>
     public static Cube PutFaces(Cube root, CubePos minPos, CubePos maxPos, Immut<Cube.Face> face) {
-        return ApplyFaces(root, minPos, maxPos, (f) => (f.Val.Equals(face.Val) ? f : face));
+        return ApplyFaces(root, minPos, maxPos, f => (f.Val.Equals(face.Val) ? f : face));
     }
 
     /// <summary>

@@ -20,7 +20,7 @@ public class Editor : Spatial {
     private MoveHandle[] nMoveAdjustAxes;
     [NodeRef("ResizeHandles")] private Spatial nResizeHandleRoot = null;
     [NodeRef("EditorCamera")] private EditorCamera nCam = null;
-    [NodeRef("/root/Spatial/EditorGUI")] private EditorGUI nGUI;
+    [NodeRef("/root/Spatial/EditorGUI")] private EditorGUI nGUI = null;
 
     private struct Clipping {
         public Cube root;
@@ -250,59 +250,45 @@ public class Editor : Spatial {
         return modified;
     }
 
-    private bool Move(int axis, bool dir) {
-        CubePos axisOff = CubePos.FromAxisSize(axis, state.editDepth) * (dir ? 1 : -1);
-        bool worldModified = ExpandIncludeSelection(axisOff);
-
-        CubeModel m = state.world.Val;
-        Cube oldRoot = m.root;
-        bool rootModified = false;
-        m.root = Util.AssignChanged(m.root, CubeEdit.Extrude(
-            oldRoot, m.root, state.selMin.ToRoot(m), state.selMax.ToRoot(m),
-            state.RootEditDepth, axis, dir), ref rootModified);
-        if (rootModified)
-            state.world = Immut.Create(m);
-
-        return worldModified | rootModified;
-    }
-
-    private bool SetVolume(Guid volume) {
-        bool worldModified = ExpandIncludeSelection(CubePos.ZERO);
-        CubeModel m = state.world.Val;
-        bool rootModified = false;
-        m.root = Util.AssignChanged(m.root, CubeEdit.PutVolumes(m.root,
-            state.selMin.ToRoot(m), state.selMax.ToRoot(m), volume), ref rootModified);
-        if (rootModified)
-            state.world = Immut.Create(m);
-        return worldModified | rootModified;
-    }
-
-    private bool Paint(Immut<Cube.Face> face) {
+    private bool ApplyRoot(Func<CubeModel, Cube> func) {
         CubeModel m = state.world.Val;
         bool modified = false;
-        m.root = Util.AssignChanged(m.root, CubeEdit.PutFaces(
-            m.root, state.selMin.ToRootClamped(m), state.selMax.ToRootClamped(m), face),
-            ref modified);
+        m.root = Util.AssignChanged(m.root, func(m), ref modified);
         if (modified)
             state.world = Immut.Create(m);
         return modified;
+    }
+
+    private bool Move(int axis, bool dir) {
+        CubePos axisOff = CubePos.FromAxisSize(axis, state.editDepth) * (dir ? 1 : -1);
+        bool modified = ExpandIncludeSelection(axisOff);
+        modified |= ApplyRoot(m => CubeEdit.Extrude(
+            m.root, m.root, state.selMin.ToRoot(m), state.selMax.ToRoot(m),
+            state.RootEditDepth, axis, dir));
+        return modified;
+    }
+
+    private bool SetVolume(Guid volume) {
+        bool modified = ExpandIncludeSelection(CubePos.ZERO);
+        modified |= ApplyRoot(m => CubeEdit.PutVolumes(m.root,
+            state.selMin.ToRoot(m), state.selMax.ToRoot(m), volume));
+        return modified;
+    }
+
+    private bool Paint(Immut<Cube.Face> face) {
+        return ApplyRoot(m => CubeEdit.PutFaces(
+            m.root, state.selMin.ToRootClamped(m), state.selMax.ToRootClamped(m), face));
     }
 
     private bool UVOffset(int u, int v) {
         int cubeSize = (int)CubePos.CubeSize(state.editDepth);
-        CubeModel m = state.world.Val;
-        bool modified = false;
-        m.root = Util.AssignChanged(m.root, CubeEdit.ApplyFaces(
-            m.root, state.selMin.ToRootClamped(m), state.selMax.ToRootClamped(m), (f) => {
+        return ApplyRoot(m => CubeEdit.ApplyFaces(
+            m.root, state.selMin.ToRootClamped(m), state.selMax.ToRootClamped(m), f => {
                 Cube.Face newFace = f.Val;
                 newFace.base_.uOffset += u * cubeSize;
                 newFace.base_.vOffset += v * cubeSize;
                 return Immut.Create(newFace);
-            }),
-            ref modified);
-        if (modified)
-            state.world = Immut.Create(m);
-        return modified;
+            }));
     }
 
     private Clipping Copy() {
@@ -412,6 +398,8 @@ public class Editor : Spatial {
         nGUI.OperationText = $"{op.name} +{CubeDebug.allocCount} cu"
             + $" {Time.GetTicksMsec() - op.startTick} ms";
         UpdateState(modified);
+        if (!modified)
+            nGUI.StatsText = "=== no change ===";
     }
 
     private void ResetAdjust() {

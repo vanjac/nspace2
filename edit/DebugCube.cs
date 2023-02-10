@@ -1,7 +1,7 @@
 using Godot;
 
 public class DebugCube : Spatial {
-    [NodeRef("MeshInstance")] private Spatial nMesh;
+    [NodeRef("MeshInstance")] private Spatial nMesh = null;
     private CubePos pos;
     private int depth;
 
