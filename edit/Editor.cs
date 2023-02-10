@@ -423,16 +423,16 @@ public class Editor : Spatial {
     private void MoveAdjust(int axis, int units) {
         if (!state.AnySelection)
             return;
+        if (!adjusting) {
+            undo.Push(state);
+            adjusting = true;
+        }
         if (nGUI.MoveSelectEnabled ^ Input.IsKeyPressed((int)KeyList.Shift)) {
             MoveSelection(axis, units);
             UpdateState(false);
             return;
         }
 
-        if (!adjusting) {
-            undo.Push(state);
-            adjusting = true;
-        }
         var op = BeginOperation("Move");
         bool modified = false;
         for (; units > 0; units--) {
@@ -461,11 +461,13 @@ public class Editor : Spatial {
     // TouchController...
 
     public void _OnSelectClear() {
+        undo.Push(state);
         state.ClearSelection();
         UpdateState(false);
     }
 
     public void _OnSelectStart(Vector3 pos, Vector3 normal) {
+        undo.Push(state);
         pos = ToLocal(pos);
         normal = Transform.basis.XformInv(normal);
         SelectStart(CubeUtil.PickFace(pos, normal, state.editDepth, state.world.Val.rootPos,
@@ -518,6 +520,10 @@ public class Editor : Spatial {
     }
 
     public void _OnSelectionResize(Vector3 units, int i) {
+        if (!adjusting) {
+            undo.Push(state);
+            adjusting = true;
+        }
         var handle = nResizeHandleRoot.GetChild<ResizeHandle>(i);
         int gridSize = (int)CubePos.CubeSize(state.editDepth);
         CubePos curPos = handle.CurrentPos;
@@ -536,6 +542,7 @@ public class Editor : Spatial {
     }
 
     public void _OnSelectionResizeEnd(int i) {
+        ResetAdjust();
         UpdateState(false); // assign correct CurrentPos value
     }
 
