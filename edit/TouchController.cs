@@ -10,7 +10,7 @@ public class TouchController : Node {
     private const float PAN_SCALE = .004f;
 
     private enum TouchState {
-        None, CameraOnly, Gui, SelectPending, SelectDrag, Adjust
+        None, Clear, Gui, SelectPending, SelectDrag, Adjust
     }
 
     [Signal] delegate void SelectStart(Vector3 pos, Vector3 norm);
@@ -46,9 +46,9 @@ public class TouchController : Node {
                     RefocusCursor(AverageTouchPosition());
                     GetTree().SetInputAsHandled();
                 }
-                if (touchPositions.Count == 2 && (singleTouchState == TouchState.None
+                if (touchPositions.Count == 2 && (singleTouchState == TouchState.Clear
                         || singleTouchState == TouchState.SelectPending))
-                    singleTouchState = TouchState.CameraOnly; // prevent accidental deselect
+                    singleTouchState = TouchState.None; // prevent accidental deselect
             } else { // released
                 if (touch.Index == singleTouch && singleTouchState != TouchState.Gui) {
                     switch (singleTouchState) {
@@ -65,7 +65,7 @@ public class TouchController : Node {
                         case TouchState.Adjust:
                             grabbedHandle.OnRelease();
                             break;
-                        case TouchState.None:
+                        case TouchState.Clear:
                             EmitSignal(nameof(SelectClear));
                             break;
                     }
@@ -97,6 +97,9 @@ public class TouchController : Node {
                     case TouchState.Adjust:
                         grabbedHandle.OnDrag(drag.Position);
                         break;
+                    case TouchState.Clear:
+                        singleTouchState = TouchState.None;
+                        break;
                 }
             } else if (touchPositions.Count > 1) {
                 GetTree().SetInputAsHandled();
@@ -126,7 +129,7 @@ public class TouchController : Node {
     public override void _UnhandledInput(InputEvent ev) {
         if (ev is InputEventScreenTouch touch && touch.Pressed) {
             if (touchPositions.Count == 1 && touch.Index == singleTouch) {
-                singleTouchState = TouchState.None; // definitely not GUI
+                singleTouchState = TouchState.Clear; // definitely not GUI
                 if (RayCastCursor(touch.Position, out _, out _, out CollisionObject obj,
                         mask: 1 << PhysicsLayers.AdjustHandle)) {
                     singleTouchState = TouchState.Adjust;
