@@ -146,7 +146,7 @@ margin_bottom = 40.0
 focus_mode = 2
 text = "View"
 flat = false
-items = [ "Faces", null, 1, true, false, 0, 0, null, "", false, "Edge shadows", null, 1, true, false, 1, 0, null, "", false, "Grid", null, 1, false, false, 2, 0, null, "", false, "Edges", null, 1, false, false, 3, 0, null, "", false, "Leaves", null, 1, false, false, 4, 0, null, "", false, "Stats", null, 1, false, false, 5, 0, null, "", false ]
+items = [ "Faces", null, 1, true, false, 0, 0, null, "", false, "Edge shadows", null, 1, true, false, 1, 0, null, "", false, "Grid", null, 1, false, false, 2, 0, null, "", false, "Edges", null, 1, false, false, 3, 0, null, "", false, "Leaves", null, 1, false, false, 4, 0, null, "", false, "Stats", null, 1, false, false, 5, 0, null, "", false, "Invisible", null, 1, true, false, 6, 0, null, "", false ]
 
 [node name="TabContainer" type="TabContainer" parent="."]
 modulate = Color( 1, 1, 1, 0.784314 )

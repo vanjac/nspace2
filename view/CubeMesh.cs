@@ -31,6 +31,7 @@ public class CubeMesh : Spatial {
     public float EdgeShadowSize { get; set; } = 0.5f;
     public bool EdgesVisible { get; set; }
     public bool DebugLeavesVisible { get; set; }
+    public bool ShowInvisible { get; set; } = true;
 
     public override void _Ready() {
         NodeRefAttribute.GetAllNodes(this);
@@ -83,12 +84,11 @@ public class CubeMesh : Spatial {
             shadowSurf.Begin(Mesh.PrimitiveType.Triangles);
             for (int axis = 0; axis < 3; axis++) {
                 ForEachEdge(rootCubes4, pos, size, axis, (leaves, pos, size) => {
-                    stats.quads += BuildShadowEdge(leaves, pos, size, axis,
-                        shadowSurf, EdgeShadowSize);
+                    stats.quads += BuildShadowEdge(leaves, pos, size, axis, shadowSurf);
                 });
             }
             ForEachVertex(rootCubes8, pos, size, (leaves, pos) => {
-                stats.quads += BuildShadowVertex(leaves, pos, shadowSurf, EdgeShadowSize);
+                stats.quads += BuildShadowVertex(leaves, pos, shadowSurf);
             });
             shadowSurf.Index();
             shadowSurf.Commit(shadowMesh);
@@ -142,21 +142,21 @@ public class CubeMesh : Spatial {
         return stats;
     }
 
-    private static int BuildFaceMesh(Cube.LeafImmut min, Cube.LeafImmut max,
+    private int BuildFaceMesh(Cube.LeafImmut min, Cube.LeafImmut max,
             Vector3 pos, float size, int axis, Dictionary<Guid, SurfaceTool> surfs) {
         if (min.Val.volume == max.Val.volume)
             return 0;
         var face = max.face(axis).Val;
-        int numQuads;
+        int numQuads = 0;
         if (min.Val.volume == CubeVolume.SOLID || max.Val.volume == CubeVolume.SOLID) {
             bool dir = min.Val.volume == CubeVolume.SOLID;
             AddQuad(pos, size, axis, dir, face.base_, surfs);
             numQuads = 1;
-            if (face.overlay.material != CubeMaterial.DEFAULT_OVERLAY) {
+            if (face.overlay.material != CubeMaterial.INVISIBLE) {
                 AddQuad(pos, size, axis, dir, face.overlay, surfs);
                 numQuads = 2;
             }
-        } else {
+        } else if (face.overlay.material != CubeMaterial.INVISIBLE || ShowInvisible) {
             AddQuad(pos, size, axis, true, face.overlay, surfs);
             AddQuad(pos, size, axis, false, face.overlay, surfs);
             numQuads = 2;
@@ -195,7 +195,7 @@ public class CubeMesh : Spatial {
         st.AddTriangleFan(verts, uvs);
     }
 
-    private static void BuildFaceCollision(Cube.LeafImmut min, Cube.LeafImmut max,
+    private void BuildFaceCollision(Cube.LeafImmut min, Cube.LeafImmut max,
             Vector3 pos, float size, int axis, List<Vector3> singleTris, List<Vector3> doubleTris) {
         if (min.Val.volume == max.Val.volume)
             return;
@@ -213,8 +213,8 @@ public class CubeMesh : Spatial {
     private static readonly Vector2[] VERTEX_SHADOW_UVS =
         new Vector2[] { Vector2.Zero, Vector2.Right, new Vector2(1.414f, 0), Vector2.Right };
 
-    private static int BuildShadowEdge(Arr4<Cube.LeafImmut> leaves,
-            Vector3 pos, float size, int axis, SurfaceTool surf, float width) {
+    private int BuildShadowEdge(Arr4<Cube.LeafImmut> leaves,
+            Vector3 pos, float size, int axis, SurfaceTool surf) {
         int numQuads = 0;
         var lightMat = CubeMaterial.LIGHT;
         for (int i = 0; i < 4; i++) {
@@ -226,9 +226,9 @@ public class CubeMesh : Spatial {
                     && leaves[i | 1].face((axis + 1) % 3).Val.base_.material != lightMat
                     && leaves[i | 2].face((axis + 2) % 3).Val.base_.material != lightMat) {
                 var vEdge = CubeUtil.IndexVector(1 << axis) * size;
-                var vS = CubeUtil.IndexVector(CubeUtil.CycleIndex(1, axis + 1)) * width;
+                var vS = CubeUtil.IndexVector(CubeUtil.CycleIndex(1, axis + 1)) * EdgeShadowSize;
                 if ((i & 1) == 0) vS = -vS;
-                var vT = CubeUtil.IndexVector(CubeUtil.CycleIndex(1, axis + 2)) * width;
+                var vT = CubeUtil.IndexVector(CubeUtil.CycleIndex(1, axis + 2)) * EdgeShadowSize;
                 if ((i & 2) == 0) vT = -vT;
                 if (((i & 1) ^ ((i >> 1) & 1)) == 0) (vS, vT) = (vT, vS); // TODO jank
                 Vector2 dark = new Vector2(0, 0), light = new Vector2(1, 0);
@@ -244,8 +244,7 @@ public class CubeMesh : Spatial {
         return numQuads;
     }
 
-    private static int BuildShadowVertex(Arr8<Cube.LeafImmut> leaves, Vector3 pos,
-            SurfaceTool surf, float width) {
+    private int BuildShadowVertex(Arr8<Cube.LeafImmut> leaves, Vector3 pos, SurfaceTool surf) {
         int numQuads = 0;
         var lightMat = CubeMaterial.LIGHT;
         for (int i = 0; i < 8; i++) {
@@ -260,9 +259,9 @@ public class CubeMesh : Spatial {
                             && leaves[i | p].face(axis).Val.base_.material != lightMat
                             && leaves[(i ^ p ^ s) | t].face(tAxis).Val.base_.material != lightMat
                             && leaves[(i ^ p ^ t) | s].face(sAxis).Val.base_.material != lightMat) {
-                        var vS = CubeUtil.IndexVector(s) * width;
+                        var vS = CubeUtil.IndexVector(s) * EdgeShadowSize;
                         if ((i & s) == 0) vS = -vS;
-                        var vT = CubeUtil.IndexVector(t) * width;
+                        var vT = CubeUtil.IndexVector(t) * EdgeShadowSize;
                         if ((i & t) == 0) vT = -vT;
                         if (((i ^ (i >> 1) ^ (i >> 2)) & 1) != 0)
                             (vS, vT) = (vT, vS);

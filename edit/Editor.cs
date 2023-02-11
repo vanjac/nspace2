@@ -760,6 +760,10 @@ public class Editor : Spatial {
             case 5: // stats
                 nGUI.StatusVisible = check;
                 break;
+            case 6: // invisible
+                nCubeMesh.ShowInvisible = check;
+                UpdateState(true);
+                break;
             case 99: // wireframe (TODO broken)
                 GetViewport().DebugDraw = check ? Viewport.DebugDrawEnum.Wireframe
                     : Viewport.DebugDrawEnum.Disabled;
